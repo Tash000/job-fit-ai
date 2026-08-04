@@ -1,0 +1,32 @@
+name: ✨ Feature request
+description: Suggest an improvement for Vitralume
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem or use case?
+      description: Describe the pain point this feature solves.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How do you imagine it working?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you've thought about.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: "I'd be willing to implement this"
+        - label: "Needs backend (FastAPI) changes"
+        - label: "Needs frontend (React/PWA) changes"

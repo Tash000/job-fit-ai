@@ -1,0 +1,50 @@
+name: 🐛 Bug report
+description: Report a problem with Vitralume
+title: "bug: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for taking the time to fill out this bug report! Please do **not** include API keys or personal data."
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen, and what actually happened?
+      placeholder: "I expected the ATS score to update, but..."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal reproduction.
+      value: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll to '...'
+        4. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      options:
+        - Website (browser)
+        - Phone PWA
+        - Desktop installable app
+        - Backend / API
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Branch or commit hash you are running.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / console errors
+      description: Paste console or server output (remove anything sensitive).
+      render: shell

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "api-authentication": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "skillPath": "skills/api-authentication/SKILL.md",
+      "computedHash": "da093972b72908b941d2255e1b717292cb5220d850efbb38e80b0e38bd6072f9"
+    },
+    "backend-security-coder": {
+      "source": "rmyndharis/antigravity-skills",
+      "sourceType": "github",
+      "skillPath": "skills/backend-security-coder/SKILL.md",
+      "computedHash": "f9c4364e1c99867774b991f75908928973b497218e35270d7f9f8c2f48525635"
+    },
+    "pwa-expert": {
+      "source": "erichowens/some_claude_skills",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/pwa-expert/SKILL.md",
+      "computedHash": "cbd7e8e72e82504420ece0cb1dd8994cd5909f60d21c9082afccbddf7c528b8b"
+    },
+    "react-frontend": {
+      "source": "iliaal/ai-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-frontend/SKILL.md",
+      "computedHash": "4e3bef1dfe7d9ba60a6dab02f6b03122215693ec481d2fc0d834d361eaa971a3"
+    }
+  }
+}

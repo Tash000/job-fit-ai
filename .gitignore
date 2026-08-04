@@ -1,0 +1,51 @@
+# ── Environment & secrets ────────────────────────────────────────────────
+# Never commit real keys or local env files.
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+backend/venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── Databases & local data ────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+copilot.db
+
+# ── Node / frontend ───────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dev-dist/
+.vite/
+*.local
+
+# ── PWA generated assets (regenerate via scripts/generate-icons.mjs) ─────
+frontend/public/pwa-*.png
+frontend/public/apple-touch-icon.png
+
+# ── Editors / local agent state ───────────────────────────────────────────
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
