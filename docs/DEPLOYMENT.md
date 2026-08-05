@@ -3,7 +3,7 @@
 This guide walks through shipping Vitralume as a public app: a website + an
 installable phone/desktop app, backed by a secure multi-user backend.
 
-**Target stack:** Frontend on **Vercel** · Backend on **Google Cloud Run** · Auth & DB on **Supabase**.
+**Target stack:** Frontend on **Vercel** · Backend on **Render.com (free tier)** · Auth & DB on **Supabase**.
 
 ---
 
@@ -39,32 +39,42 @@ git push -u origin main
 
 ---
 
-## 3. Backend on Google Cloud Run
+## 3. Backend on Render.com (free — no credit card)
 
-```bash
-# One-time
-gcloud auth login
-gcloud config set project <your-project-id>
-gcloud builds submit --tag gcr.io/<your-project-id>/vitralume-api
+The Dockerfile lives at `backend/Dockerfile` and listens on the `PORT` env var that
+Render provides (no code changes needed). Free tier: 512 MB RAM, 750 hours/month;
+the service spins down after 15 min idle and cold-starts in ~30–60 s — fine for a
+personal app, optionally kept warm with a cron ping (see below). No billing method
+is required.
 
-# Deploy with secrets as env vars (never in code)
-gcloud run deploy vitralume-api \
-  --image gcr.io/<your-project-id>/vitralume-api \
-  --region europe-west1 \
-  --allow-unauthenticated \
-  --cpu 2 --memory 1Gi \
-  --timeout 300 \
-  --set-env-vars "APP_ENV=production" \
-  --set-env-vars "DATABASE_URL=postgresql://..." \
-  --set-env-vars "SUPABASE_URL=..." \
-  --set-env-vars "SUPABASE_ANON_KEY=..." \
-  --set-env-vars "SUPABASE_JWT_SECRET=..." \
-  --set-env-vars "APP_ENCRYPTION_KEY=..." \
-  --set-env-vars "APP_ORIGINS=https://job-fit-ai.vercel.app" \
-  --set-env-vars "APP_PUBLIC_URL=https://vitralume-api-xxxx.a.run.app"
-```
+1. Push the repo to GitHub (the `backend/.dockerignore` keeps your local venv and
+   SQLite files out of the image).
+2. Sign up at [render.com](https://render.com) with your GitHub account →
+   **New + → Web Service** → connect the repo.
+3. Configure the service:
+   - **Name:** `vitralume-api`
+   - **Root Directory:** `backend` ⚠️ (the Dockerfile is inside `backend/`)
+   - **Runtime:** Docker (auto-detected)
+   - **Region:** nearest to you
+   - **Plan:** Free
+4. Under **Advanced → Environment**, add these env vars (secrets live here, never in code):
 
-> A `Dockerfile` is included at the repo root (`backend/Dockerfile`) with a `Procfile` for Cloud Run. The 300s timeout matters: LLM generation can be slow.
+   | Variable | Value |
+   | --- | --- |
+   | `APP_ENV` | `production` |
+   | `DATABASE_URL` | Supabase **Session pooler** connection string |
+   | `SUPABASE_URL` | Supabase Project URL |
+   | `SUPABASE_ANON_KEY` | Supabase anon public key |
+   | `SUPABASE_JWT_SECRET` | Supabase JWT Secret |
+   | `APP_ENCRYPTION_KEY` | Fernet master key (44-char urlsafe base64) |
+   | `APP_ORIGINS` | the exact Vercel URL, e.g. `https://job-fit-ai.vercel.app` |
+   | `APP_PUBLIC_URL` | your Render URL, e.g. `https://vitralume-api.onrender.com` |
+
+5. **Create Web Service** → first build takes ~5–10 min → Render prints your URL
+   `https://<service>.onrender.com`. Visit it: you should see the API's JSON message
+   (or open `/docs` for the Swagger UI).
+6. (Optional) Keep the free instance awake with a free [cron-job.org](https://cron-job.org)
+   job that pings `https://<service>.onrender.com/healthz` every 10 minutes.
 
 ---
 
@@ -75,7 +85,7 @@ gcloud run deploy vitralume-api \
 3. Environment variables:
    - `VITE_SUPABASE_URL` = the Supabase project URL
    - `VITE_SUPABASE_ANON_KEY` = the anon key
-   - `VITE_API_BASE` = `https://vitralume-api-xxxx.a.run.app` (the Cloud Run URL)
+   - `VITE_API_BASE` = `https://<service>.onrender.com` (the Render URL)
 4. Deploy → Vercel gives you `https://job-fit-ai.vercel.app` with HTTPS + HSTS automatically.
 5. Update the backend's `APP_ORIGINS` to include the Vercel URL.
 
@@ -99,7 +109,7 @@ Nothing to install on the device — the PWA works over HTTPS:
 
 - [ ] `pytest` and `npm run build` pass
 - [ ] `APP_ENV=production` on the backend; demo mode disabled
-- [ ] `APP_ENCRYPTION_KEY` generated and stored in Cloud Run secrets
+- [ ] `APP_ENCRYPTION_KEY` generated and stored in Render env vars
 - [ ] CORS `APP_ORIGINS` includes the real frontend URL only
 - [ ] `.env` files not committed (`.gitignore` covers them)
 - [ ] Backend reachable over HTTPS
@@ -112,8 +122,8 @@ Nothing to install on the device — the PWA works over HTTPS:
 | `VITE_SUPABASE_URL` | Vercel | Supabase client init (public) |
 | `VITE_SUPABASE_ANON_KEY` | Vercel | Supabase client init (public) |
 | `VITE_API_BASE` | Vercel | Backend base URL |
-| `SUPABASE_URL/ANON_KEY/JWT_SECRET` | Cloud Run | Auth + JWT validation |
-| `DATABASE_URL` | Cloud Run | Postgres connection (Supabase pooler) |
-| `APP_ENCRYPTION_KEY` | Cloud Run | Master key for encrypting user API keys |
-| `APP_ORIGINS` | Cloud Run | Allowed CORS origins |
-| `APP_ENV` | Cloud Run | `production` |
+| `SUPABASE_URL/ANON_KEY/JWT_SECRET` | Render | Auth + JWT validation |
+| `DATABASE_URL` | Render | Postgres connection (Supabase pooler) |
+| `APP_ENCRYPTION_KEY` | Render | Master key for encrypting user API keys |
+| `APP_ORIGINS` | Render | Allowed CORS origins |
+| `APP_ENV` | Render | `production` |

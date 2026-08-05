@@ -1,0 +1,21 @@
+# Local Python environment (never ship a Windows venv into a Linux image)
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Local databases & state
+*.db
+*.sqlite3
+
+# Secrets
+.env
+.env.*
+
+# Tests are run in CI/locally, not needed at runtime
+tests/
+
+# OS noise
+.DS_Store
+Thumbs.db

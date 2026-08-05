@@ -697,6 +697,15 @@ def refine_application_letter(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Health check (used by Render's health checks and keep-alive pings)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Serve the built frontend when present (local single-process deploy)
 # ══════════════════════════════════════════════════════════════════════════════
 

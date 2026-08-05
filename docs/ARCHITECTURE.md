@@ -13,7 +13,7 @@
 
 | Layer | Control |
 | --- | --- |
-| Transport | HTTPS (Vercel + Cloud Run), HSTS header |
+| Transport | HTTPS (Vercel + Render.com), HSTS header |
 | Authentication | Supabase Auth; JWT validated per request (`PyJWT`, HS256, audience `authenticated`) |
 | Authorization | Every endpoint requires the authenticated user; every query scoped by `user_id` |
 | Secret storage | User provider keys encrypted at rest with **Fernet (AES-128-CBC)** using `APP_ENCRYPTION_KEY`; write-only API |
