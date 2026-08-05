@@ -29,25 +29,80 @@ class AuthError(Exception):
     """Raised when authentication fails."""
 
 
-def _decode_supabase_token(token: str) -> str:
-    """Validate a Supabase access token and return the user id (sub)."""
-    if not config.SUPABASE_JWT_SECRET:
-        raise AuthError("Server auth is not configured")
-    try:
-        payload = pyjwt.decode(
-            token,
-            config.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-            options={"require": ["exp", "sub"]},
-        )
-    except pyjwt.ExpiredSignatureError as exc:
-        raise AuthError("Token expired") from exc
-    except pyjwt.InvalidAudienceError as exc:
-        raise AuthError("Token audience mismatch") from exc
-    except pyjwt.PyJWTError as exc:
-        raise AuthError("Invalid token") from exc
+# JWKS client for new-style Supabase signing keys (asymmetric ES256/RS256).
+# Newer Supabase projects no longer sign user access tokens with the legacy
+# HS256 shared secret, so we verify against the project's published JWKS and
+# fall back to the legacy secret for older projects.
+_jwks_client: Optional[pyjwt.PyJWKClient] = None
 
+
+def _get_jwks_client() -> Optional[pyjwt.PyJWKClient]:
+    """Lazily build (and cache) the JWKS client from the project URL."""
+    global _jwks_client
+    if _jwks_client is None and config.SUPABASE_URL:
+        jwks_url = f"{config.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        _jwks_client = pyjwt.PyJWKClient(jwks_url)
+    return _jwks_client
+
+
+def _decode_supabase_token(token: str) -> str:
+    """Validate a Supabase access token and return the user id (sub).
+
+    Tries two verifiers in order:
+      1. JWKS (asymmetric keys) — required for projects created since the
+         JWT-signing-keys rollout (tokens signed with ES256/RS256).
+      2. Legacy HS256 shared secret — older / migrated projects.
+    """
+    if not config.SUPABASE_URL and not config.SUPABASE_JWT_SECRET:
+        raise AuthError("Server auth is not configured")
+
+    last_error: Optional[str] = None
+
+    # 1) New signing keys: fetch the public key by kid and verify.
+    client = _get_jwks_client()
+    if client is not None:
+        try:
+            signing_key = client.get_signing_key_from_jwt(token)
+            payload = pyjwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "RS256", "HS256"],
+                audience="authenticated",
+                options={"require": ["exp", "sub"]},
+            )
+            return _extract_sub(payload)
+        except pyjwt.ExpiredSignatureError as exc:
+            # Surface expired tokens consistently regardless of path.
+            log.warning("JWT expired during JWKS verification: %s", exc)
+            raise AuthError("Token expired") from exc
+        except (pyjwt.PyJWTError, ValueError, TypeError, pyjwt.PyJWKClientError) as exc:
+            # Signature / audience / key-resolution / network failures → fall back.
+            log.info("JWKS verification failed, trying legacy secret: %s", exc)
+            last_error = "JWKS"
+
+    # 2) Legacy shared secret (HS256).
+    if config.SUPABASE_JWT_SECRET:
+        try:
+            payload = pyjwt.decode(
+                token,
+                config.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"require": ["exp", "sub"]},
+            )
+            return _extract_sub(payload)
+        except pyjwt.ExpiredSignatureError as exc:
+            raise AuthError("Token expired") from exc
+        except pyjwt.InvalidAudienceError as exc:
+            raise AuthError("Token audience mismatch") from exc
+        except pyjwt.PyJWTError as exc:
+            last_error = f"HS256: {exc}"
+
+    raise AuthError(f"Invalid token ({last_error or 'unknown'})")
+
+
+def _extract_sub(payload: dict) -> str:
+    """Pull the canonical UUID subject out of a verified payload."""
     sub = payload.get("sub")
     if not sub:
         raise AuthError("Token missing subject")

@@ -389,8 +389,13 @@ function ApplicationsView({ notify }: { notify: (m: string, t?: string) => void 
   const [form, setForm] = useState({ company: '', position: '', location: '', description: '' })
 
   const load = useCallback(async () => {
-    const r = await fetch(`${API}/api/applications`)
-    setApps(await r.json())
+    try {
+      const r = await fetch(`${API}/api/applications`)
+      const data = await r.json().catch(() => [])
+      setApps(Array.isArray(data) ? data : [])
+    } catch {
+      setApps([])
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -1234,7 +1239,10 @@ function ProfileView({ notify }: { notify: (m: string, t?: string) => void }) {
   const [parsingText, setParsingText] = useState(false)
 
   useEffect(() => {
-    fetch(`${API}/api/profile`).then(r => r.json()).then(setProfile)
+    fetch(`${API}/api/profile`)
+      .then(r => r.json())
+      .then(d => setProfile(d && d.resume_text !== undefined ? d : null))
+      .catch(() => setProfile(null))
   }, [])
 
   async function save() {
