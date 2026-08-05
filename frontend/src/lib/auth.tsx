@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LockIcon, MailIcon, ShieldCheckIcon } from 'lucide-react'
+import { LockIcon, MailIcon, ShieldCheckIcon, SunIcon, MoonIcon } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { setCachedToken } from './token'
+import { useTheme } from './theme'
 
 // ── Context ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ export function useAuth() {
 
 export function LoginScreen() {
   const { signIn, signUp, demo } = useAuth()
+  const [theme, toggleTheme] = useTheme()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -128,6 +130,14 @@ export function LoginScreen() {
 
   return (
     <div className="auth-screen">
+      <button
+        className="btn btn-ghost btn-icon theme-toggle-floating"
+        onClick={toggleTheme}
+        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        aria-label="Toggle theme"
+      >
+        {theme === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
+      </button>
       <form className="auth-card fade-in" onSubmit={submit}>
         <div className="auth-brand">
           <span className="logo-dot" />

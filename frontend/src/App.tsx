@@ -7,10 +7,11 @@ import {
   KeyIcon, ServerIcon, SaveIcon,
   ClipboardListIcon, ShieldCheckIcon, SparklesIcon, TargetIcon,
   ExternalLinkIcon, ClipboardPasteIcon, WandIcon, RefreshCcwIcon, MessageSquareIcon,
-  LogOutIcon,
+  LogOutIcon, SunIcon, MoonIcon,
 } from 'lucide-react'
 import './index.css'
 import { LoginScreen, useAuth } from './lib/auth'
+import { useTheme } from './lib/theme'
 
 // Backend base: same-origin in dev/self-host, or VITE_API_BASE in production.
 // The interceptor in lib/api.ts attaches the Supabase Bearer token to /api calls.
@@ -134,7 +135,7 @@ function ScoreRing({ value, size = 80 }: { value: number; size?: number }) {
   return (
     <div className="score-ring" style={{ width: size, height: size }}>
       <svg width={size} height={size}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={5} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={5} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke={color} strokeWidth={5}
@@ -209,6 +210,7 @@ function InstallButton() {
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
+  const [theme, toggleTheme] = useTheme()
   const [nav, setNav] = useState<'apps' | 'profile' | 'settings'>('apps')
   const [toast, setToast] = useState<{ msg: string; type: string } | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -272,6 +274,14 @@ export default function App() {
 
         <div className="topbar-status">
           <InstallButton />
+          <button
+            className="btn btn-ghost btn-icon btn-sm theme-toggle"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <MoonIcon size={15} /> : <SunIcon size={15} />}
+          </button>
           <div className={`provider-badge ${providerActive ? '' : 'inactive'}`}>
             <span className="dot" />
             {providerLabel.toUpperCase()}
