@@ -9,29 +9,29 @@
 
 /* ── 1. PRIMITIVE TOKENS (raw values, never overridden) ──────────────── */
 :root {
-  /* Color scale — blue (primary) — muted for minimal aesthetic */
-  --color-blue-50:  #F8FAFC;
-  --color-blue-100: #EFF2F5;
-  --color-blue-200: #E1E7ED;
-  --color-blue-300: #CBD5E0;
-  --color-blue-400: #98A9C1;
-  --color-blue-500: #5A7BA3;
-  --color-blue-600: #3B5998;
-  --color-blue-700: #2D4373;
-  --color-blue-800: #1F2D47;
-  --color-blue-900: #0F1517;
+  /* Color scale — indigo (primary) — warm professional tone */
+  --color-blue-50:  #F5F7FC;
+  --color-blue-100: #E8ECFA;
+  --color-blue-200: #D4DDF5;
+  --color-blue-300: #B8C7ED;
+  --color-blue-400: #8FA5DC;
+  --color-blue-500: #6B84CD;
+  --color-blue-600: #4E63B8;
+  --color-blue-700: #3D4B95;
+  --color-blue-800: #2D3670;
+  --color-blue-900: #1B1F47;
 
-  /* Color scale — purple (secondary) — muted */
-  --color-purple-50:  #F8F6FB;
-  --color-purple-100: #EFE9F7;
-  --color-purple-200: #E1D8F0;
-  --color-purple-300: #D0BFE8;
-  --color-purple-400: #A391D4;
-  --color-purple-500: #7A6BA8;
-  --color-purple-600: #5A4A82;
-  --color-purple-700: #463A65;
-  --color-purple-800: #322A47;
-  --color-purple-900: #1F1A2E;
+  /* Color scale — violet (secondary) — warm accent */
+  --color-purple-50:  #FAF7FE;
+  --color-purple-100: #F2ECFD;
+  --color-purple-200: #E5D9FB;
+  --color-purple-300: #D4C2F6;
+  --color-purple-400: #B9A4ED;
+  --color-purple-500: #9B84E0;
+  --color-purple-600: #7E6AC8;
+  --color-purple-700: #6552A8;
+  --color-purple-800: #4A3D7E;
+  --color-purple-900: #2F2347;
 
   /* Color scale — cyan (brand gradient partner) */
   --color-cyan-400: #22D3EE;
@@ -120,12 +120,12 @@
   --radius-3xl:     1.75rem;
   --radius-full:    9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.06);
-  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.18);
-  --shadow-glow: 0 4px 20px -2px color-mix(in srgb, var(--brand-500) 35%, transparent);
+  /* Shadows — refined elevation scale */
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 10px 24px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.14);
+  --shadow-glow: 0 0 24px rgb(75 99 184 / 0.15);
 
   /* Duration */
   --duration-150: 150ms;
@@ -146,15 +146,15 @@
 /* ── 2. SEMANTIC TOKENS — light (default) ────────────────────────────── */
 :root {
   --color-background: #FAFBFC;
-  --color-foreground: #202124;
+  --color-foreground: #1A1D24;
   --color-card: #FFFFFF;
-  --color-card-foreground: #202124;
-  --color-muted: #F8F9FB;
-  --color-muted-foreground: #5F6368;
-  --color-secondary: #F1F3F4;
-  --color-secondary-foreground: #202124;
-  --color-border: #DADCE0;
-  --color-input: #F1F3F4;
+  --color-card-foreground: #1A1D24;
+  --color-muted: #F5F7FB;
+  --color-muted-foreground: #626768;
+  --color-secondary: #F0F2F6;
+  --color-secondary-foreground: #1A1D24;
+  --color-border: #D8DDE5;
+  --color-input: #F5F7FB;
 
   /* Brand accent (switched by [data-accent]) — default: blue */
   --brand-50:   var(--color-blue-50);
@@ -202,16 +202,16 @@
 
 /* ── 2b. SEMANTIC TOKENS — dark ──────────────────────────────────────── */
 [data-theme="dark"] {
-  --color-background: #121212;
-  --color-foreground: #E8EAED;
-  --color-card: #1E1E1E;
-  --color-card-foreground: #E8EAED;
-  --color-muted: #292A2D;
-  --color-muted-foreground: #9AA0A6;
-  --color-secondary: #202124;
-  --color-secondary-foreground: #E8EAED;
-  --color-border: #3F4043;
-  --color-input: #202124;
+  --color-background: #0F1116;
+  --color-foreground: #E9EBEF;
+  --color-card: #16171D;
+  --color-card-foreground: #E9EBEF;
+  --color-muted: #1F2128;
+  --color-muted-foreground: #9AA1A8;
+  --color-secondary: #1A1C24;
+  --color-secondary-foreground: #E9EBEF;
+  --color-border: #353A43;
+  --color-input: #1F2128;
   --color-ring: var(--brand-400);
 
   --color-primary: var(--brand-500);
@@ -656,15 +656,14 @@ code { font-family: var(--font-mono); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-600), var(--brand-grad-to));
+  background: linear-gradient(135deg, var(--brand-600) 0%, color-mix(in srgb, var(--brand-600) 85%, var(--brand-grad-to) 15%) 100%);
   color: var(--color-primary-foreground);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--brand-600) 30%, transparent);
+  box-shadow: 0 2px 6px rgb(75 99 184 / 0.18);
 }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--brand-500), var(--brand-grad-to));
-  filter: saturate(1.15);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-glow);
+  background: linear-gradient(135deg, var(--brand-500) 0%, color-mix(in srgb, var(--brand-500) 85%, var(--brand-grad-to) 15%) 100%);
+  box-shadow: 0 4px 12px rgb(75 99 184 / 0.24);
+  transform: translateY(-2px);
 }
 
 /* Physical press feedback (spring feel). */
@@ -734,10 +733,10 @@ code { font-family: var(--font-mono); }
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-sm);
   transition: var(--ease);
 }
-.card:hover { border-color: var(--border-strong); }
+.card:hover { border-color: color-mix(in srgb, var(--color-border) 150%, transparent); box-shadow: var(--shadow-md); }
 
 .card-header {
   display: flex;
@@ -1655,15 +1654,15 @@ code { font-family: var(--font-mono); }
   display: flex; align-items: center; justify-content: center;
   margin-bottom: var(--space-2);
 }
-.stat-blue   { background: #EBF0F7; color: #3B5998; border: 1px solid #D9E3F0; }
-.stat-teal   { background: #E8F3F1; color: #1B6F6F; border: 1px solid #D0E8E5; }
-.stat-purple { background: #F1EBF7; color: #5A4A82; border: 1px solid #E0D8F0; }
-.stat-green  { background: #EBF4E8; color: #2D7D3B; border: 1px solid #D8EAD1; }
+.stat-blue   { background: #EFF3FA; color: #4E63B8; border: 1px solid #D4DDF5; }
+.stat-teal   { background: #E3F4F1; color: #228B7E; border: 1px solid #C7E9E2; }
+.stat-purple { background: #F5F0FE; color: #7E6AC8; border: 1px solid #E0D3FB; }
+.stat-green  { background: #ECF6E8; color: #3A8F45; border: 1px solid #D4EBD0; }
 
-[data-theme="dark"] .stat-blue   { background: #1A2B47; color: #7CA3D1; border: 1px solid #2D3D52; }
-[data-theme="dark"] .stat-teal   { background: #1A3939; color: #5FC9B5; border: 1px solid #2D4D48; }
-[data-theme="dark"] .stat-purple { background: #2B1E3D; color: #A391D4; border: 1px solid #3D2D52; }
-[data-theme="dark"] .stat-green  { background: #1D3A1E; color: #81C995; border: 1px solid #2D4D2E; }
+[data-theme="dark"] .stat-blue   { background: #1E2947; color: #8FA5DC; border: 1px solid #2D3D57; }
+[data-theme="dark"] .stat-teal   { background: #1A3A36; color: #66D4BD; border: 1px solid #2D4B45; }
+[data-theme="dark"] .stat-purple { background: #312546; color: #B9A4ED; border: 1px solid #412D5C; }
+[data-theme="dark"] .stat-green  { background: #1F3922; color: #88D998; border: 1px solid #2E4A32; }
 
 .stat-value { font-family: var(--font-display); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-foreground); }
 .stat-label { font-size: var(--font-size-xs); color: var(--text-muted); }
@@ -1774,11 +1773,11 @@ code { font-family: var(--font-mono); }
   justify-content: space-around;
   gap: 2px;
   padding: 8px 10px max(10px, calc(8px + env(safe-area-inset-bottom)));
-  background: color-mix(in srgb, var(--color-card) 94%, transparent);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  background: color-mix(in srgb, var(--color-card) 96%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--color-border);
-  box-shadow: 0 -10px 26px rgb(0 0 0 / 0.18);
+  box-shadow: 0 -4px 12px rgb(0 0 0 / 0.08);
 }
 
 .mobile-nav-btn {
