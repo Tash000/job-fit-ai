@@ -92,11 +92,12 @@ export function useAuth() {
   return ctx
 }
 
-// ── Login screen ─────────────────────────────────────────────────────────────
+// ── Auth panel ────────────────────────────────────────────────────────────────
+// Reusable sign-in / sign-up card. Used by the landing page and the legacy
+// standalone login screen.
 
-export function LoginScreen() {
+export function AuthPanel({ onBack }: { onBack?: () => void }) {
   const { signIn, signUp, demo } = useAuth()
-  const [theme, toggleTheme] = useTheme()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -129,6 +130,75 @@ export function LoginScreen() {
   }
 
   return (
+    <form className="auth-card fade-in" onSubmit={submit}>
+      {onBack && (
+        <button type="button" className="btn btn-ghost btn-sm auth-back" onClick={onBack}>
+          ← Back to home
+        </button>
+      )}
+      <div className="auth-brand">
+        <span className="logo-dot" />
+        <h1>Vitralume</h1>
+        <p className="text-sm text-secondary">Glass-clear insight into your job fit</p>
+      </div>
+
+      <label className="form-label" htmlFor="auth-email">Email</label>
+      <div className="auth-field">
+        <MailIcon size={15} className="auth-field-icon" />
+        <input
+          id="auth-email"
+          className="form-input"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
+      </div>
+
+      <label className="form-label" htmlFor="auth-password">Password</label>
+      <div className="auth-field">
+        <LockIcon size={15} className="auth-field-icon" />
+        <input
+          id="auth-password"
+          className="form-input"
+          type="password"
+          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+          placeholder="••••••••"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+      </div>
+
+      {error && <div className="auth-error text-sm">{error}</div>}
+      {notice && <div className="auth-notice text-sm">{notice}</div>}
+
+      <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
+        {busy ? <><div className="spinner" />Please wait…</> : mode === 'signin' ? 'Sign in' : 'Create account'}
+      </button>
+
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        style={{ width: '100%' }}
+        onClick={() => { setMode(m => (m === 'signin' ? 'signup' : 'signin')); setError(null) }}
+      >
+        {mode === 'signin' ? 'No account? Create one' : 'Already registered? Sign in'}
+      </button>
+
+      <p className="auth-note text-xs text-muted">
+        <ShieldCheckIcon size={12} style={{ display: 'inline', marginRight: 4 }} />
+        Your data is encrypted and private to your account.
+      </p>
+    </form>
+  )
+}
+
+// ── Login screen (legacy standalone) ───────────────────────────────────────────
+
+export function LoginScreen() {
+  const [theme, toggleTheme] = useTheme()
+  return (
     <div className="auth-screen">
       <button
         className="btn btn-ghost btn-icon theme-toggle-floating"
@@ -138,62 +208,7 @@ export function LoginScreen() {
       >
         {theme === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
       </button>
-      <form className="auth-card fade-in" onSubmit={submit}>
-        <div className="auth-brand">
-          <span className="logo-dot" />
-          <h1>Vitralume</h1>
-          <p className="text-sm text-secondary">Glass-clear insight into your job fit</p>
-        </div>
-
-        <label className="form-label" htmlFor="auth-email">Email</label>
-        <div className="auth-field">
-          <MailIcon size={15} className="auth-field-icon" />
-          <input
-            id="auth-email"
-            className="form-input"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-          />
-        </div>
-
-        <label className="form-label" htmlFor="auth-password">Password</label>
-        <div className="auth-field">
-          <LockIcon size={15} className="auth-field-icon" />
-          <input
-            id="auth-password"
-            className="form-input"
-            type="password"
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            placeholder="••••••••"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-          />
-        </div>
-
-        {error && <div className="auth-error text-sm">{error}</div>}
-        {notice && <div className="auth-notice text-sm">{notice}</div>}
-
-        <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
-          {busy ? <><div className="spinner" />Please wait…</> : mode === 'signin' ? 'Sign in' : 'Create account'}
-        </button>
-
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
-          style={{ width: '100%' }}
-          onClick={() => { setMode(m => (m === 'signin' ? 'signup' : 'signin')); setError(null) }}
-        >
-          {mode === 'signin' ? 'No account? Create one' : 'Already registered? Sign in'}
-        </button>
-
-        <p className="auth-note text-xs text-muted">
-          <ShieldCheckIcon size={12} style={{ display: 'inline', marginRight: 4 }} />
-          Your data is encrypted and private to your account.
-        </p>
-      </form>
+      <AuthPanel />
     </div>
   )
 }

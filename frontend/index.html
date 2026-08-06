@@ -10,8 +10,10 @@
     <title>Vitralume — Job Application Copilot</title>
     <script>
       // Apply the saved theme before first paint to avoid a flash.
+      // ?theme=light|dark in the URL overrides the saved/system preference.
       try {
-        var t = localStorage.getItem('vitralume-theme')
+        var q = new URLSearchParams(window.location.search).get('theme')
+        var t = q === 'light' || q === 'dark' ? q : localStorage.getItem('vitralume-theme')
         if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
         document.documentElement.dataset.theme = t
       } catch (e) {}
