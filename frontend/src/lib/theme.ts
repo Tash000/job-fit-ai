@@ -1,41 +1,102 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type Theme = 'light' | 'dark'
+export type Theme = 'light' | 'dark' | 'system'
+export type ResolvedTheme = 'light' | 'dark'
+export type Accent = 'blue' | 'purple'
 
-const STORAGE_KEY = 'vitralume-theme'
+const THEME_KEY = 'vitralume-theme'
+const ACCENT_KEY = 'vitralume-accent'
+
+function systemPrefersDark(): boolean {
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+}
+
+function parseTheme(v: string | null): Theme | null {
+  return v === 'light' || v === 'dark' || v === 'system' ? v : null
+}
+
+function parseAccent(v: string | null): Accent | null {
+  return v === 'blue' || v === 'purple' ? v : null
+}
 
 function getInitialTheme(): Theme {
   try {
-    // ?theme=light|dark in the URL overrides the saved/system preference.
-    const q = new URLSearchParams(window.location.search).get('theme')
-    if (q === 'light' || q === 'dark') return q
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === 'light' || saved === 'dark') return saved
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
+    // ?theme=light|dark|system in the URL overrides the saved/system preference.
+    return (
+      parseTheme(new URLSearchParams(window.location.search).get('theme'))
+      ?? parseTheme(localStorage.getItem(THEME_KEY))
+      ?? 'system'
+    )
   } catch {
-    /* ignore storage errors (private mode etc.) */
+    return 'system'
   }
-  return 'light'
 }
 
-export function useTheme(): [Theme, () => void] {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+function getInitialAccent(): Accent {
+  try {
+    // ?accent=blue|purple in the URL overrides the saved preference.
+    return (
+      parseAccent(new URLSearchParams(window.location.search).get('accent'))
+      ?? parseAccent(localStorage.getItem(ACCENT_KEY))
+      ?? 'blue'
+    )
+  } catch {
+    return 'blue'
+  }
+}
 
+export interface Appearance {
+  /** The user's preference ('system' follows the OS). */
+  theme: Theme
+  /** The brand accent color. */
+  accent: Accent
+  /** The theme actually applied right now. */
+  resolved: ResolvedTheme
+  setTheme: (t: Theme) => void
+  setAccent: (a: Accent) => void
+  toggleTheme: () => void
+}
+
+/**
+ * Theme + accent preference with pre-paint-safe persistence.
+ * Writes `data-theme` and `data-accent` onto <html> so the CSS token
+ * system (semantic layer) can switch without JS class logic.
+ */
+export function useAppearance(): Appearance {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const [accent, setAccent] = useState<Accent>(getInitialAccent)
+  const [sysDark, setSysDark] = useState<boolean>(systemPrefersDark)
+
+  // Follow OS changes only while the user is on 'system'.
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    try {
-      localStorage.setItem(STORAGE_KEY, theme)
-      // Keep the browser UI (e.g. mobile address bar) in sync with the theme.
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b0f19' : '#f6f7f9')
-    } catch {
-      /* ignore storage errors */
-    }
+    if (theme !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => setSysDark(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
   }, [theme])
 
-  const toggleTheme = useCallback(() => {
-    setTheme(t => (t === 'light' ? 'dark' : 'light'))
-  }, [])
+  const resolved: ResolvedTheme = theme === 'system' ? (sysDark ? 'dark' : 'light') : theme
 
-  return [theme, toggleTheme]
+  useEffect(() => {
+    const el = document.documentElement
+    el.dataset.theme = resolved
+    el.dataset.accent = accent
+    try {
+      localStorage.setItem(THEME_KEY, theme)
+      localStorage.setItem(ACCENT_KEY, accent)
+      // Keep the browser chrome (e.g. mobile address bar) in sync.
+      const meta = document.querySelector('meta[name="theme-color"]')
+      if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0f172a' : '#f6f7f9')
+    } catch {
+      /* ignore storage errors (private mode etc.) */
+    }
+  }, [resolved, accent, theme])
+
+  const toggleTheme = useCallback(() => {
+    // Resolve 'system' first so the toggle always flips what the user sees.
+    setTheme(resolved === 'dark' ? 'light' : 'dark')
+  }, [resolved])
+
+  return { theme, accent, resolved, setTheme, setAccent, toggleTheme }
 }

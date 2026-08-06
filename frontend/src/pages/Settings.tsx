@@ -2,16 +2,31 @@ import { useState, useEffect } from 'react'
 import {
   CpuIcon, KeyIcon, ServerIcon, ShieldCheckIcon, CheckCircleIcon,
   SaveIcon, PlusIcon, TrashIcon, ExternalLinkIcon, BrainCircuitIcon, ZapIcon,
+  PaletteIcon, SunIcon, MoonIcon, MonitorIcon, type LucideIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { Notify, Settings as SettingsData } from '../lib/types'
 import { LoadingBlock } from '../components/ui'
+import { InstallButton } from '../components/InstallButton'
+import { useAppearance, type Accent, type Theme } from '../lib/theme'
+
+const THEME_OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
+  { value: 'light', label: 'Light', icon: SunIcon },
+  { value: 'dark', label: 'Dark', icon: MoonIcon },
+  { value: 'system', label: 'System', icon: MonitorIcon },
+]
+
+const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
+  { value: 'blue', label: 'Blue', swatch: 'swatch-blue' },
+  { value: 'purple', label: 'Purple', swatch: 'swatch-purple' },
+]
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SETTINGS VIEW
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s: SettingsData) => void }) {
+  const { theme, accent, setTheme, setAccent } = useAppearance()
   const [s, setS] = useState<SettingsData | null>(null)
   const [saving, setSaving] = useState(false)
   const [newPhrase, setNewPhrase] = useState('')
@@ -73,6 +88,46 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
         <button className="btn btn-primary" onClick={save} disabled={saving}>
           {saving ? <><div className="spinner" />Saving…</> : <><SaveIcon size={15} />Save All</>}
         </button>
+      </div>
+
+      {/* Appearance — theme + accent + install (moved off the landing page) */}
+      <div className="card">
+        <div className="card-header"><PaletteIcon size={15} color="var(--accent-light)" /><span className="card-title">Appearance</span></div>
+        <div className="card-body settings-section">
+          <div className="settings-section-title">Theme</div>
+          <div className="flex gap-8 flex-wrap">
+            {THEME_OPTIONS.map(opt => {
+              const Icon = opt.icon
+              return (
+                <button
+                  key={opt.value}
+                  className={`btn flex-1 ${theme === opt.value ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setTheme(opt.value)}
+                >
+                  <Icon size={14} />{opt.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="settings-section-title">Accent Color</div>
+          <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts.</p>
+          <div className="flex gap-8 flex-wrap">
+            {ACCENTS.map(a => (
+              <button
+                key={a.value}
+                className={`accent-swatch ${accent === a.value ? 'active' : ''}`}
+                onClick={() => setAccent(a.value)}
+              >
+                <span className={`swatch ${a.swatch}`} />{a.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="settings-section-title">Install App</div>
+          <p className="text-xs text-muted">Add Vitralume to your home screen for one-tap launch and offline access.</p>
+          <div><InstallButton /></div>
+        </div>
       </div>
 
       {/* Active Provider */}

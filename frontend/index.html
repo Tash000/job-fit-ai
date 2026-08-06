@@ -9,13 +9,15 @@
     <meta name="theme-color" content="#f6f7f9" />
     <title>Vitralume — Job Application Copilot</title>
     <script>
-      // Apply the saved theme before first paint to avoid a flash.
-      // ?theme=light|dark in the URL overrides the saved/system preference.
+      // Apply the saved theme + accent before first paint to avoid a flash.
+      // ?theme= and ?accent= in the URL override the saved/system preference.
       try {
-        var q = new URLSearchParams(window.location.search).get('theme')
-        var t = q === 'light' || q === 'dark' ? q : localStorage.getItem('vitralume-theme')
-        if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-        document.documentElement.dataset.theme = t
+        var q = new URLSearchParams(window.location.search)
+        var t = q.get('theme') || localStorage.getItem('vitralume-theme') || 'system'
+        var a = q.get('accent') || localStorage.getItem('vitralume-accent') || 'blue'
+        var dark = t === 'dark' || (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        document.documentElement.dataset.accent = a === 'purple' ? 'purple' : 'blue'
       } catch (e) {}
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

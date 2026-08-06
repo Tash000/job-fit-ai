@@ -2,10 +2,10 @@ import { useState } from 'react'
 import {
   SparklesIcon, TargetIcon, BookOpenIcon, FileTextIcon,
   WandIcon, ShieldCheckIcon, BarChartIcon, CheckCircleIcon,
-  ArrowRightIcon, SunIcon, MoonIcon, CpuIcon,
+  ArrowRightIcon, CpuIcon,
 } from 'lucide-react'
 import { AuthPanel } from '../lib/auth'
-import { useTheme } from '../lib/theme'
+import { InstallPrompt } from '../components/InstallPrompt'
 
 /**
  * Public landing page shown to signed-out visitors.
@@ -13,19 +13,10 @@ import { useTheme } from '../lib/theme'
  */
 export default function LandingPage() {
   const [view, setView] = useState<'home' | 'auth'>('home')
-  const [theme, toggleTheme] = useTheme()
 
   if (view === 'auth') {
     return (
       <div className="auth-screen">
-        <button
-          className="btn btn-ghost btn-icon theme-toggle-floating"
-          onClick={toggleTheme}
-          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          aria-label="Toggle theme"
-        >
-          {theme === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
-        </button>
         <AuthPanel onBack={() => setView('home')} />
       </div>
     )
@@ -45,14 +36,6 @@ export default function LandingPage() {
           <a href="#privacy" onClick={e => { e.preventDefault(); scrollToId('privacy') }}>Privacy</a>
         </nav>
         <div className="landing-nav-actions">
-          <button
-            className="btn btn-ghost btn-icon theme-toggle"
-            onClick={toggleTheme}
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
-          </button>
           <button className="btn btn-ghost" onClick={() => setView('auth')}>Sign in</button>
           <button className="btn btn-primary" onClick={() => setView('auth')}>
             Get started <ArrowRightIcon size={14} />
@@ -212,6 +195,8 @@ export default function LandingPage() {
         <p>Built for researchers who don't have time to chase ATS keyword lists.</p>
         <p className="footer-copy">© {new Date().getFullYear()} Vitralume · Job Application Copilot</p>
       </footer>
+
+      <InstallPrompt />
     </div>
   )
 }

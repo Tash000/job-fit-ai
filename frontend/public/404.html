@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404 — This page ghosted you · Vitralume</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f6f7f9; --card: #ffffff; --fg: #111827; --muted: #6b7280;
+      --border: #e5e7eb; --ring: #3b82f6;
+      --g1: #2563eb; --g2: #06b6d4;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --card: #182138; --fg: #f9fafb; --muted: #9ca3af;
+        --border: #1e293b; --ring: #60a5fa;
+        --g1: #8b5cf6; --g2: #a78bfa;
+      }
+    }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(800px 460px at 20% -10%, color-mix(in srgb, var(--ring) 14%, transparent) 0%, transparent 60%),
+        radial-gradient(700px 420px at 90% 110%, color-mix(in srgb, var(--g2) 12%, transparent) 0%, transparent 60%),
+        var(--bg);
+      color: var(--fg);
+    }
+    .card {
+      width: 100%; max-width: 460px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 20px;
+      box-shadow: 0 24px 48px -12px rgb(0 0 0 / 0.18);
+      padding: 44px 32px; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+    .dot {
+      width: 14px; height: 14px; border-radius: 5px; transform: rotate(45deg);
+      background: linear-gradient(135deg, var(--g1), var(--g2));
+      box-shadow: 0 4px 20px -2px color-mix(in srgb, var(--g1) 45%, transparent);
+    }
+    .code {
+      font-size: 3rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+      background: linear-gradient(135deg, var(--g1), var(--g2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; }
+    p { font-size: 0.9rem; color: var(--muted); line-height: 1.6; max-width: 340px; }
+    a, button {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 8px; padding: 10px 22px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--g1), var(--g2));
+      color: #fff; font-size: 0.9rem; font-weight: 600;
+      text-decoration: none; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--g1) 40%, transparent);
+    }
+    a:hover, button:hover { transform: translateY(-1px); filter: saturate(1.15); }
+    .sub { font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="dot"></span>
+    <div class="code">404</div>
+    <h1>This page ghosted you.</h1>
+    <p>It probably got a better offer and left without a two-week notice. Rude — even for a URL.</p>
+    <a href="/">← Take me back to Vitralume</a>
+    <p class="sub">Or don't. The landing page will wait. It's patient like that.</p>
+  </div>
+</body>
+</html>

@@ -33,9 +33,9 @@ frontend/dev-dist/
 .vite/
 *.local
 
-# ── PWA generated assets (regenerate via scripts/generate-icons.mjs) ─────
-frontend/public/pwa-*.png
-frontend/public/apple-touch-icon.png
+# ── PWA icons ──────────────────────────────────────────────────────────────
+# Icons ARE committed so the web manifest is valid on Vercel (broken icons
+# silently disable the install prompt). Regenerate via scripts/generate-icons.mjs.
 
 # ── Editors / local agent state ───────────────────────────────────────────
 .idea/
@@ -49,3 +49,4 @@ Thumbs.db
 # ── Logs ──────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
+for-tsh.md

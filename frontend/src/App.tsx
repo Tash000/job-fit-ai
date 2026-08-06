@@ -5,12 +5,13 @@ import {
 } from 'lucide-react'
 import './index.css'
 import { useAuth } from './lib/auth'
-import { useTheme } from './lib/theme'
+import { useAppearance } from './lib/theme'
 import type { Settings } from './lib/types'
 import { isProviderActive } from './lib/types'
 import { API_BASE as API } from './lib/api'
 import { Toast } from './components/ui'
 import { InstallButton } from './components/InstallButton'
+import { InstallPrompt } from './components/InstallPrompt'
 import LandingPage from './pages/Landing'
 import { DashboardView } from './pages/Dashboard'
 import { ApplicationsView } from './pages/Applications'
@@ -19,16 +20,16 @@ import { SettingsView } from './pages/Settings'
 
 type View = 'dashboard' | 'apps' | 'profile' | 'settings'
 
-const VIEW_META: Record<View, { label: string; icon: typeof LayoutDashboardIcon; hint: string }> = {
-  dashboard: { label: 'Dashboard', icon: LayoutDashboardIcon, hint: 'Your job hunt at a glance' },
-  apps:      { label: 'Applications', icon: BriefcaseIcon, hint: 'Track, analyze, and perfect every application' },
-  profile:   { label: 'Resume & Profile', icon: UserIcon, hint: 'Your resume powers every analysis' },
-  settings:  { label: 'Settings', icon: SettingsIcon, hint: 'Providers, models, and writing preferences' },
+const VIEW_META: Record<View, { label: string; short: string; icon: typeof LayoutDashboardIcon; hint: string }> = {
+  dashboard: { label: 'Dashboard', short: 'Home', icon: LayoutDashboardIcon, hint: 'Your job hunt at a glance' },
+  apps:      { label: 'Applications', short: 'Apps', icon: BriefcaseIcon, hint: 'Track, analyze, and perfect every application' },
+  profile:   { label: 'Resume & Profile', short: 'Profile', icon: UserIcon, hint: 'Your resume powers every analysis' },
+  settings:  { label: 'Settings', short: 'Settings', icon: SettingsIcon, hint: 'Providers, models, appearance' },
 }
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
-  const [theme, toggleTheme] = useTheme()
+  const { resolved: theme, toggleTheme } = useAppearance()
   const [nav, setNav] = useState<View>('dashboard')
   const [toast, setToast] = useState<{ msg: string; type: string } | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -60,7 +61,7 @@ export default function App() {
     )
   }
 
-  // ── Public: landing page ──
+  // ── Public: landing page (the install prompt is available to visitors too) ──
   if (!user) return <LandingPage />
 
   const providerLabel = settings?.active_provider ?? 'gemini'
@@ -74,7 +75,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* ── Sidebar ── */}
+      {/* ── Sidebar (desktop) ── */}
       <aside className="sidebar">
         <a className="sidebar-logo" href="#" onClick={e => { e.preventDefault(); setNav('dashboard') }}>
           <span className="logo-dot" />
@@ -140,6 +141,14 @@ export default function App() {
             >
               {theme === 'light' ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
+            <button
+              className="btn btn-ghost btn-icon btn-sm topbar-signout-mobile"
+              onClick={() => { void signOut() }}
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <LogOutIcon size={15} />
+            </button>
           </div>
         </header>
 
@@ -163,6 +172,25 @@ export default function App() {
         </main>
       </div>
 
+      {/* ── Mobile bottom navigation ── */}
+      <nav className="mobile-nav" aria-label="Primary">
+        {(Object.keys(VIEW_META) as View[]).map(v => {
+          const Icon = VIEW_META[v].icon
+          return (
+            <button
+              key={v}
+              className={`mobile-nav-btn ${nav === v ? 'active' : ''}`}
+              onClick={() => setNav(v)}
+              aria-label={VIEW_META[v].label}
+            >
+              <Icon size={18} />
+              <span>{VIEW_META[v].short}</span>
+            </button>
+          )
+        })}
+      </nav>
+
+      <InstallPrompt />
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={closeToast} />}
     </div>
   )

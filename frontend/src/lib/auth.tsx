@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { LockIcon, MailIcon, ShieldCheckIcon, SunIcon, MoonIcon } from 'lucide-react'
+import { LockIcon, MailIcon, ShieldCheckIcon } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { setCachedToken } from './token'
-import { useTheme } from './theme'
 
 // ── Context ──────────────────────────────────────────────────────────────────
 
@@ -194,21 +193,4 @@ export function AuthPanel({ onBack }: { onBack?: () => void }) {
   )
 }
 
-// ── Login screen (legacy standalone) ───────────────────────────────────────────
 
-export function LoginScreen() {
-  const [theme, toggleTheme] = useTheme()
-  return (
-    <div className="auth-screen">
-      <button
-        className="btn btn-ghost btn-icon theme-toggle-floating"
-        onClick={toggleTheme}
-        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-        aria-label="Toggle theme"
-      >
-        {theme === 'light' ? <MoonIcon size={16} /> : <SunIcon size={16} />}
-      </button>
-      <AuthPanel />
-    </div>
-  )
-}
