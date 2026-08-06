@@ -36,6 +36,12 @@
       "sourceType": "github",
       "skillPath": "skills/react-frontend/SKILL.md",
       "computedHash": "4e3bef1dfe7d9ba60a6dab02f6b03122215693ec481d2fc0d834d361eaa971a3"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "6cb585d36a0d0418986bc8449bc0c8ff216344d692e08245d7f9e7414fee11a6"
     }
   }
 }

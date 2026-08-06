@@ -39,6 +39,11 @@
   --color-gray-900:  #111827;
   --color-gray-950:  #0B0F19;
 
+  /* Color scale — slate (dark tech surfaces) */
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+  --color-surface-dark: #182138;
+
   /* Status primitives */
   --color-green-500: #22C55E;
   --color-green-600: #16A34A;
@@ -157,16 +162,16 @@
 
 /* ── 2b. SEMANTIC TOKENS — dark ──────────────────────────────────────── */
 [data-theme="dark"] {
-  --color-background: var(--color-gray-950);
+  --color-background: var(--color-slate-900);
   --color-foreground: var(--color-gray-50);
-  --color-card: var(--color-gray-900);
+  --color-card: var(--color-surface-dark);
   --color-card-foreground: var(--color-gray-50);
-  --color-muted: var(--color-gray-800);
+  --color-muted: var(--color-slate-800);
   --color-muted-foreground: var(--color-gray-400);
-  --color-secondary: var(--color-gray-800);
+  --color-secondary: var(--color-slate-800);
   --color-secondary-foreground: var(--color-gray-50);
-  --color-border: var(--color-gray-800);
-  --color-input: var(--color-gray-800);
+  --color-border: var(--color-slate-800);
+  --color-input: var(--color-slate-800);
   --color-ring: var(--color-blue-400);
 
   --color-primary: var(--color-blue-500);
@@ -179,8 +184,8 @@
   --color-error: var(--color-red-400);
   --color-info: var(--color-blue-400);
 
-  --color-sidebar: var(--color-gray-900);
-  --color-sidebar-border: var(--color-gray-800);
+  --color-sidebar: var(--color-surface-dark);
+  --color-sidebar-border: var(--color-slate-800);
 
   color-scheme: dark;
 }
@@ -269,8 +274,8 @@
   --auth-glow-1:   color-mix(in srgb, var(--color-blue-500) 12%, transparent);
   --auth-glow-2:   color-mix(in srgb, var(--color-cyan-400) 10%, transparent);
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
 
   --radius-full: var(--radius-full);
@@ -333,6 +338,23 @@ p { color: var(--text-secondary); }
 a { color: var(--accent); text-decoration: none; transition: var(--ease); }
 a:hover { color: var(--accent-light); }
 code { font-family: var(--font-mono); }
+
+/* Keyboard focus must always be visible (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    App shell — sidebar + main column
@@ -547,6 +569,16 @@ code { font-family: var(--font-mono); }
   box-shadow: 0 0 6px var(--success);
 }
 
+@keyframes pulseDot {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.provider-badge:not(.inactive) .dot {
+  animation: pulseDot 2.2s ease-out infinite;
+}
+
 .provider-badge.inactive .dot { background: var(--text-disabled); box-shadow: none; }
 
 /* ── Theme toggle ── */
@@ -599,14 +631,22 @@ code { font-family: var(--font-mono); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-blue-600), var(--color-cyan-500));
   color: var(--color-primary-foreground);
   box-shadow: 0 1px 2px rgb(37 99 235 / 0.3);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: linear-gradient(135deg, var(--color-blue-500), var(--color-cyan-400));
   transform: translateY(-1px);
   box-shadow: var(--shadow-glow);
+}
+
+/* Physical press feedback (spring feel). */
+.btn:active:not(:disabled),
+.app-list-item:active,
+.dash-app-row:active,
+.side-nav-btn:active {
+  transform: scale(0.96);
 }
 
 .btn-secondary {
@@ -1634,7 +1674,25 @@ code { font-family: var(--font-mono); }
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .fade-in { animation: fadeIn var(--duration-300) ease; }
+
+/* Staggered entrance for card grids (skill: Standard motion, 300-450ms). */
+@media (prefers-reduced-motion: no-preference) {
+  .feature-grid .feature-card,
+  .stat-grid .stat-card,
+  .steps .step-card {
+    animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .feature-grid .feature-card:nth-child(2), .stat-grid .stat-card:nth-child(2), .steps .step-card:nth-child(2) { animation-delay: 0.06s; }
+  .feature-grid .feature-card:nth-child(3), .stat-grid .stat-card:nth-child(3), .steps .step-card:nth-child(3) { animation-delay: 0.12s; }
+  .feature-grid .feature-card:nth-child(4), .stat-grid .stat-card:nth-child(4), .steps .step-card:nth-child(4) { animation-delay: 0.18s; }
+  .feature-grid .feature-card:nth-child(5), .stat-grid .stat-card:nth-child(5), .steps .step-card:nth-child(5) { animation-delay: 0.24s; }
+  .feature-grid .feature-card:nth-child(6), .stat-grid .stat-card:nth-child(6) { animation-delay: 0.3s; }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    Utilities

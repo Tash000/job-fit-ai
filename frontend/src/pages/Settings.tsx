@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   CpuIcon, KeyIcon, ServerIcon, ShieldCheckIcon, CheckCircleIcon,
-  SaveIcon, PlusIcon, TrashIcon, ExternalLinkIcon,
+  SaveIcon, PlusIcon, TrashIcon, ExternalLinkIcon, BrainCircuitIcon, ZapIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { Notify, Settings as SettingsData } from '../lib/types'
@@ -83,7 +83,11 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
             <button key={p}
               className={`btn flex-1 ${s.active_provider === p ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setS(x => x ? { ...x, active_provider: p } : x)}>
-              {p === 'gemini' ? '🧠 Google Gemini' : p === 'nim' ? '⚡ NVIDIA NIM' : '🦙 Ollama (Local)'}
+              {p === 'gemini'
+                ? <><BrainCircuitIcon size={15} />Google Gemini</>
+                : p === 'nim'
+                  ? <><ZapIcon size={15} />NVIDIA NIM</>
+                  : <><ServerIcon size={15} />Ollama (Local)</>}
             </button>
           ))}
         </div>

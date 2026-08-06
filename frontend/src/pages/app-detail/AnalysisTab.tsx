@@ -1,4 +1,4 @@
-import { ZapIcon, BarChartIcon, CheckCircleIcon, AlertTriangleIcon, SearchIcon, ChevronRightIcon } from 'lucide-react'
+import { ZapIcon, BarChartIcon, CheckCircleIcon, AlertTriangleIcon, SearchIcon, ChevronRightIcon, ClockIcon } from 'lucide-react'
 import type { AppDetail } from '../../lib/types'
 import { ScoreRing, ProgressBar } from '../../components/ui'
 
@@ -95,7 +95,7 @@ export function AnalysisTab({ app }: { app: AppDetail }) {
                     <span className="impact-badge">Impact: {g.impact}</span>
                   </div>
                 </div>
-                <div className="text-xs text-muted">⏱ {g.effort}</div>
+                <div className="flex items-center gap-6 text-xs text-muted"><ClockIcon size={12} />{g.effort}</div>
                 <div className="gap-resources">
                   {g.resources?.map((r, j) => <div key={j} className="gap-resource">{r}</div>)}
                 </div>

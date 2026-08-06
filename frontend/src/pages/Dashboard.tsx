@@ -66,7 +66,7 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
       <div className="dash-hero">
         <div>
           <p className="text-xs text-muted">{today}</p>
-          <h2>Welcome back, {name} 👋</h2>
+          <h2>Welcome back, {name}</h2>
           <p className="text-sm text-secondary">Here's where your job hunt stands today.</p>
         </div>
         <div className="flex gap-8">
