@@ -2,6 +2,8 @@
 
 # 🪟 Vitralume — Job Application Copilot
 
+### https://job-fit-ai-omega.vercel.app
+
 **Glass-clear insight into your job fit.** Upload a resume, paste a job posting, and get
 suitability analysis, an ATS scan, research alignment, and cover letters with a
 verifiable **Truthfulness Guard** audit trail.
