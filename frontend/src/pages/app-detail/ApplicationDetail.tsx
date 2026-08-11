@@ -6,6 +6,7 @@ import {
 import { API_BASE as API } from '../../lib/api'
 import type { AppDetail, Notify } from '../../lib/types'
 import { statusBadge, appliedBadge } from '../../lib/types'
+import { fmtDateTime } from '../../lib/dates'
 import { ScoreRing, LoadingBlock } from '../../components/ui'
 import { AnalysisTab } from './AnalysisTab'
 import { ATSTab } from './ATSTab'
@@ -98,7 +99,12 @@ export function ApplicationDetail({
               <div className="flex gap-8 items-center" style={{ marginTop: 6 }}>
                 <span className={statusBadge(app.status)}>{app.status}</span>
                 {app.location && <span className="text-xs text-muted">{app.location}</span>}
-                {app.applied_date && <span className="text-xs text-muted">Applied {app.applied_date}</span>}
+              </div>
+              {/* Discreet timestamps: created / last analyzed / applied */}
+              <div className="app-timestamps">
+                <span>Added {fmtDateTime(app.created_at)}</span>
+                {app.analyzed_at && <span>· Last analyzed {fmtDateTime(app.analyzed_at)}</span>}
+                {app.applied_date && <span>· Applied {app.applied_date}</span>}
               </div>
             </div>
 
