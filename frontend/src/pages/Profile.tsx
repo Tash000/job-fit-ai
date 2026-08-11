@@ -247,7 +247,7 @@ export function ProfileView({ notify }: { notify: Notify }) {
         return
       }
       if (!r.ok) { notify(typeof d?.detail === 'string' ? d.detail : 'Upload failed', 'error'); return }
-      setProfile({ resume_text: d.resume_text, parsed_profile: d.parsed_profile })
+      setProfile({ resume_text: d.resume_text, display_name: profile?.display_name ?? '', parsed_profile: d.parsed_profile })
       await loadLibrary()
       notify('AI parsed your resume — saved to your library', 'success')
     } catch { notify('Upload failed', 'error') }
@@ -424,6 +424,13 @@ export function ProfileView({ notify }: { notify: Notify }) {
           <div className="card">
             <div className="card-header"><UserIcon size={15} color="var(--accent-light)" /><span className="card-title">Personal Info</span></div>
             <div className="card-body flex flex-col gap-10">
+              <div className="form-group">
+                <label className="form-label">Display Name (for the greeting on your home page)</label>
+                <input className="form-input" maxLength={80} placeholder="e.g. Tousif"
+                  value={profile.display_name ?? ''}
+                  onChange={e => setProfile(p => p ? { ...p, display_name: e.target.value } : p)} />
+                <span className="form-hint">Used for a friendly "Hi {profile.display_name || 'there'} …" greeting on the dashboard.</span>
+              </div>
               {[
                 ['name', 'Full Name', 'Dr. Thousi Yousi'],
                 ['email', 'Email', 'yousi@example.com'],

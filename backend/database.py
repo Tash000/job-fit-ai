@@ -80,6 +80,9 @@ def _migrate() -> None:
     _add_column("applications", "applied_date", "VARCHAR(16)")
     _add_column("applications", "follow_up", "BOOLEAN NOT NULL DEFAULT {default}")
     _add_column("applications", "bookmarked", "BOOLEAN NOT NULL DEFAULT {default}")
+    # Friendly nickname + admin email whitelist.
+    _add_column("profiles", "display_name", "VARCHAR(80)")
+    _add_column("user_settings", "admin_emails", "JSON")
 
 
 def init_db() -> None:
@@ -98,6 +101,8 @@ class Profile(Base):
     user_id = Column(String(64), index=True, nullable=False)
     resume_text = Column(Text, default="")
     parsed_profile = Column(JSON, default=dict)
+    # Friendly nickname shown on the dashboard greeting ("Hi {name}…").
+    display_name = Column(String(80), default="")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -172,6 +177,8 @@ class UserSettings(Base):
     active_provider = Column(String(32), default="gemini")
     forbidden_phrases = Column(JSON, default=list)
     tone_settings = Column(JSON, default=dict)
+    # Emails exempt from rate limits and per-account storage caps ("admins").
+    admin_emails = Column(JSON, default=list)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

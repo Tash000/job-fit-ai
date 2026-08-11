@@ -48,8 +48,23 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
     ? analyzed.reduce((a, b) => (a.match_score > b.match_score ? a : b))
     : null
   const recent = [...apps].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')).slice(0, 5)
-  const name = profile?.parsed_profile?.name?.split(' ')[0] || userName || 'there'
+  // Friendly greeting: display name > parsed first name > account username > generic.
+  const name = profile?.display_name?.trim()
+    || profile?.parsed_profile?.name?.split(' ')[0]
+    || userName
+    || 'there'
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+
+  // A rotating set of quirky, friendly lines — changes every day.
+  const FRIENDLY_LINES = [
+    'Ready to land your next role? Let’s make it happen today.',
+    'New job, new win — one application at a time.',
+    'The perfect role is out there. Let’s go find it.',
+    'Dream job hunting mode: activated.',
+    'Every application is a step closer to your next offer.',
+    'Your future self is cheering for you. Let’s get to work.',
+  ]
+  const dayIndex = Math.floor(Date.now() / 86_400_000) % FRIENDLY_LINES.length
 
   const provider = settings?.active_provider ?? 'gemini'
   const providerActive = isProviderActive(settings)
@@ -67,8 +82,8 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
       <div className="dash-hero">
         <div>
           <p className="text-xs text-muted">{today}</p>
-          <h2>Welcome back, {name}</h2>
-          <p className="text-sm text-secondary">Here's where your job hunt stands today.</p>
+          <h2>Hi {name}, how are you today? 👋</h2>
+          <p className="text-sm text-secondary">{FRIENDLY_LINES[dayIndex]}</p>
         </div>
         <div className="flex gap-8">
           <button className="btn btn-secondary" onClick={onSmartPaste}>

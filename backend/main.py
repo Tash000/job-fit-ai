@@ -98,6 +98,7 @@ class SettingsUpdate(BaseModel):
     active_provider: Optional[str] = None
     forbidden_phrases: Optional[List[str]] = None
     tone_settings: Optional[dict] = None
+    admin_emails: Optional[List[str]] = None
 
     # Write-only secrets. Presence semantics (per provider):
     #   api_keys: null   → no change
@@ -113,6 +114,7 @@ class SettingsUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     resume_text: str = ""
     parsed_profile: dict = {}
+    display_name: Optional[str] = None
 
 
 class ApplicationCreate(BaseModel):
@@ -150,18 +152,40 @@ _auth_limit, _auth_window = security.parse_limit(config.AUTH_RATE_LIMIT)
 auth_limiter = security.InMemoryRateLimiter(_auth_limit, _auth_window)
 
 
-def _check_generation_limit(user_id: str) -> None:
+def _is_admin_user(request: Request, user_id: str, db_session: Session) -> bool:
+    """True when the caller's email is whitelisted as an admin (server-level
+    ``ADMIN_EMAILS`` env or the user's own ``settings.admin_emails``).
+
+    Admins bypass rate limits and per-account storage caps.
+    """
+    email = _email_from_request(request)
+    if not email:
+        return False
+    email = email.strip().lower()
+    if email in {e.strip().lower() for e in config.ADMIN_EMAILS}:
+        return True
+    row = db_session.query(db.UserSettings).filter_by(user_id=user_id).first()
+    if row and row.admin_emails:
+        return email in {e.strip().lower() for e in row.admin_emails}
+    return False
+
+
+def _check_generation_limit(request: Request, user_id: str, db_session: Session) -> None:
     if not config.RATE_LIMIT_ENABLED:
+        return
+    if _is_admin_user(request, user_id, db_session):
         return
     if not generation_limiter.allow(user_id):
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Please wait a moment.")
 
 
-def _check_auth_limit(identity: str) -> None:
+def _check_auth_limit(request: Request, user_id: str, db_session: Session) -> None:
     """Rate-limit sensitive actions (e.g. key/settings changes)."""
     if not config.RATE_LIMIT_ENABLED:
         return
-    if not auth_limiter.allow(identity):
+    if _is_admin_user(request, user_id, db_session):
+        return
+    if not auth_limiter.allow(user_id):
         raise HTTPException(status_code=429, detail="Too many attempts. Please wait a moment.")
 
 
@@ -258,10 +282,11 @@ def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
         "ollama_enabled": bool(row.ollama_enabled),
         "ollama_base_url": row.ollama_base_url or "http://localhost:11434",
         "ollama_model": row.ollama_model or "llama3",
-        "active_provider": row.active_provider or "gemini",
-        "forbidden_phrases": row.forbidden_phrases or [],
-        "tone_settings": row.tone_settings or {},
-        "keyInfo": {
+    "active_provider": row.active_provider or "gemini",
+    "forbidden_phrases": row.forbidden_phrases or [],
+    "tone_settings": row.tone_settings or {},
+    "admin_emails": row.admin_emails or [],
+    "keyInfo": {
             "gemini": gemini_preview,
             "nim": nim_preview,
         },
@@ -485,10 +510,11 @@ def get_settings(user_id: str = Depends(current_user_id), db_session: Session = 
 @app.patch("/api/settings")
 def update_settings(
     payload: SettingsUpdate,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
-    _check_auth_limit(user_id)
+    _check_auth_limit(request, user_id, db_session)
     row = _get_or_create_settings(db_session, user_id)
 
     updates = {}
@@ -510,6 +536,18 @@ def update_settings(
         updates["forbidden_phrases"] = [p.strip() for p in payload.forbidden_phrases if p.strip()]
     if payload.tone_settings is not None:
         updates["tone_settings"] = payload.tone_settings
+    if payload.admin_emails is not None:
+        # Keep only well-formed emails (consistent with the app's safe-input
+        # standard for resume names) — never store arbitrary strings.
+        _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+        cleaned = [
+            e.strip().lower()
+            for e in payload.admin_emails
+            if e and e.strip() and _EMAIL_RE.match(e.strip())
+        ]
+        # De-duplicate, keep order, cap at a sane number.
+        seen: set = set()
+        updates["admin_emails"] = [e for e in cleaned if not (e in seen or seen.add(e))][:20]
 
     for field, value in updates.items():
         setattr(row, field, value)
@@ -530,7 +568,7 @@ def get_profile(user_id: str = Depends(current_user_id), db_session: Session = D
     profile = row.parsed_profile or {}
     for key in EMPTY_PROFILE:
         profile.setdefault(key, EMPTY_PROFILE[key])
-    return {"resume_text": row.resume_text or "", "parsed_profile": profile}
+    return {"resume_text": row.resume_text or "", "display_name": row.display_name or "", "parsed_profile": profile}
 
 
 @app.post("/api/profile")
@@ -543,6 +581,8 @@ def update_profile(
     row = _get_or_create_profile(db_session, user_id)
     row.resume_text = payload.resume_text
     row.parsed_profile = _normalize_profile(payload.parsed_profile)
+    if payload.display_name is not None:
+        row.display_name = payload.display_name.strip()[:80]
     # Keep the active saved resume in sync with manual profile edits.
     active = db_session.query(db.Resume).filter_by(user_id=user_id, is_active=True).first()
     if active:
@@ -561,6 +601,7 @@ def _save_profile(db_session: Session, user_id: str, resume_text: str, parsed_pr
 
 @app.post("/api/profile/upload-resume")
 async def upload_resume(
+    request: Request,
     file: UploadFile = File(...),
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
@@ -571,7 +612,7 @@ async def upload_resume(
     if file.size and file.size > 15 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="PDF too large (max 15 MB).")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     file_bytes = await file.read()
     extracted_text = parse_pdf(file_bytes)
 
@@ -585,6 +626,7 @@ async def upload_resume(
 @app.post("/api/profile/parse-text")
 def parse_resume_text(
     payload: dict,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
@@ -592,7 +634,7 @@ def parse_resume_text(
     if not raw_text:
         raise HTTPException(status_code=400, detail="resume_text cannot be empty")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     generator = build_generator_for(user_id, db_session)
     parsed_profile = _normalize_profile(generator.parse_resume(raw_text))
     _save_profile(db_session, user_id, raw_text, parsed_profile)
@@ -602,13 +644,14 @@ def parse_resume_text(
 @app.post("/api/jobs/extract")
 def extract_job_from_text(
     payload: JobExtractRequest,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
     if not payload.raw_text.strip():
         raise HTTPException(status_code=400, detail="raw_text cannot be empty")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     generator = build_generator_for(user_id, db_session)
     return generator.extract_job_details(payload.raw_text)
 
@@ -631,6 +674,7 @@ def list_applications(user_id: str = Depends(current_user_id), db_session: Sessi
 @app.post("/api/applications")
 def create_application(
     payload: ApplicationCreate,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
@@ -641,9 +685,9 @@ def create_application(
     if dup:
         raise _duplicate_error(dup)
 
-    # Per-account storage limit: max MAX_ANALYSES_PER_USER analyses.
+    # Per-account storage limit: max MAX_ANALYSES_PER_USER analyses (admins exempt).
     count = db_session.query(db.Application).filter_by(user_id=user_id).count()
-    if count >= MAX_ANALYSES_PER_USER:
+    if not _is_admin_user(request, user_id, db_session) and count >= MAX_ANALYSES_PER_USER:
         oldest = (
             db_session.query(db.Application)
             .filter_by(user_id=user_id)
@@ -744,7 +788,7 @@ _SEED_PROFESSOR_PAPERS = [
 
 
 @app.post("/api/applications/{app_id}/analyze")
-def analyze_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def analyze_application(app_id: int, request: Request, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
 
     # If this application's description matches another saved one for the same
@@ -755,7 +799,7 @@ def analyze_application(app_id: int, user_id: str = Depends(current_user_id), db
     if dup:
         raise _duplicate_error(dup)
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
 
     profile_row = _get_or_create_profile(db_session, user_id)
     profile_data = {"resume_text": profile_row.resume_text or "", "parsed_profile": profile_row.parsed_profile or {}}
@@ -797,6 +841,7 @@ def analyze_application(app_id: int, user_id: str = Depends(current_user_id), db
 @app.post("/api/applications/{app_id}/plan")
 def plan_application(
     app_id: int,
+    request: Request,
     payload: Optional[ApplicationPlanRequest] = None,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
@@ -805,7 +850,7 @@ def plan_application(
     if not row.details:
         raise HTTPException(status_code=400, detail="Run analysis first")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     generator = build_generator_for(user_id, db_session)
     style = (payload.style if payload else "industrial") or "industrial"
     plan = generator.plan_cover_letter(
@@ -822,6 +867,7 @@ def plan_application(
 def generate_application_materials(
     app_id: int,
     payload: ApplicationGenerateRequest,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
@@ -829,7 +875,7 @@ def generate_application_materials(
     if not row.details:
         raise HTTPException(status_code=400, detail="Run analysis first")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     profile_row = _get_or_create_profile(db_session, user_id)
     settings_row = _get_or_create_settings(db_session, user_id)
     settings = settings_to_public(settings_row)
@@ -920,6 +966,7 @@ def export_application_letter(app_id: int, export_format: str, user_id: str = De
 def refine_application_letter(
     app_id: int,
     payload: CoverLetterRefineRequest,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
@@ -927,7 +974,7 @@ def refine_application_letter(
     if not row.cover_letter:
         raise HTTPException(status_code=400, detail="No cover letter generated yet. Generate one first.")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     profile_row = _get_or_create_profile(db_session, user_id)
     settings = settings_to_public(_get_or_create_settings(db_session, user_id))
 
@@ -984,11 +1031,12 @@ def list_resumes(user_id: str = Depends(current_user_id), db_session: Session = 
 @app.post("/api/resumes")
 def create_resume(
     payload: ResumeCreate,
+    request: Request,
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
     count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
-    if count >= MAX_RESUMES_PER_USER:
+    if not _is_admin_user(request, user_id, db_session) and count >= MAX_RESUMES_PER_USER:
         raise HTTPException(
             status_code=409,
             detail={
@@ -1013,13 +1061,14 @@ def create_resume(
 
 @app.post("/api/resumes/upload")
 async def upload_resume_pdf(
+    request: Request,
     file: UploadFile = File(...),
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
     """Upload a PDF into the resume library (max 5), parse it, and make it active."""
     count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
-    if count >= MAX_RESUMES_PER_USER:
+    if not _is_admin_user(request, user_id, db_session) and count >= MAX_RESUMES_PER_USER:
         raise HTTPException(
             status_code=409,
             detail={
@@ -1034,7 +1083,7 @@ async def upload_resume_pdf(
     if file.size and file.size > 15 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="PDF too large (max 15 MB).")
 
-    _check_generation_limit(user_id)
+    _check_generation_limit(request, user_id, db_session)
     file_bytes = await file.read()
     extracted_text = parse_pdf(file_bytes)
 
@@ -1176,7 +1225,7 @@ def clear_account_data(
 ):
     if payload.scope not in ("keys", "data", "all"):
         raise HTTPException(status_code=400, detail="Invalid scope. Use 'keys', 'data', or 'all'.")
-    _check_auth_limit(user_id)
+    _check_auth_limit(request, user_id, db_session)
 
     if not _verify_account_password(user_id, _email_from_request(request), payload.password):
         raise HTTPException(status_code=403, detail="Password verification failed. Enter the correct account password.")
@@ -1205,6 +1254,7 @@ def clear_account_data(
         row.active_provider = "gemini"
         row.forbidden_phrases = DEFAULT_FORBIDDEN_PHRASES
         row.tone_settings = DEFAULT_TONE
+        row.admin_emails = []
         stats["settings"] = True
 
     db_session.commit()

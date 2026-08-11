@@ -139,6 +139,7 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
   const [newPhrase, setNewPhrase] = useState('')
   const [providerTab, setProviderTab] = useState<Provider>('gemini')
   const [clearScope, setClearScope] = useState<'keys' | 'data' | 'all' | null>(null)
+  const [newAdminEmail, setNewAdminEmail] = useState('')
   // Write-only key edits: newly typed keys (replacement) and removals by index.
   const [newGemini, setNewGemini] = useState<string[]>([])
   const [newNim, setNewNim] = useState<string[]>([])
@@ -208,6 +209,13 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
     const copy = [...list]
     const [m] = copy.splice(idx, 1)
     return [m, ...copy]
+  }
+
+  const addAdminEmail = () => {
+    const e = newAdminEmail.trim().toLowerCase()
+    if (!e) return
+    setS(x => x && !x.admin_emails.includes(e) ? { ...x, admin_emails: [...x.admin_emails, e] } : x)
+    setNewAdminEmail('')
   }
 
   if (!s) return <LoadingBlock label="Loading settings…" />
@@ -519,6 +527,49 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
               onClick={() => void savePartial({ forbidden_phrases: s.forbidden_phrases, tone_settings: s.tone_settings }, 'Cover letter memory saved')}
               disabled={saving}>
               {saving ? <><div className="spinner" />Saving…</> : <><SaveIcon size={13} />Save memory</>}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Admin Emails (limit exemptions) ── */}
+      <div className="card">
+        <div className="card-header"><StarIcon size={15} color="var(--accent-light)" /><span className="card-title">Admin Emails</span></div>
+        <div className="card-body settings-section">
+          <p className="text-xs text-muted">
+            Emails on this list are treated as admins: they skip the per-minute rate limit and the
+            per-account storage caps (<strong>500 job analyses</strong> and <strong>5 saved resumes</strong>).
+            Add your own email so you never hit those limits on your own account.
+          </p>
+          <div className="flex flex-wrap gap-6">
+            {(s.admin_emails ?? []).map((em, i) => (
+              <div key={i} className="keyword-tag neutral" style={{ cursor: 'pointer' }}
+                onClick={() => setS(x => x ? { ...x, admin_emails: x.admin_emails.filter((_, j) => j !== i) } : x)}
+                title="Click to remove">
+                {em} ×
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-8">
+            <input
+              className="form-input flex-1"
+              type="email"
+              placeholder="you@example.com"
+              value={newAdminEmail}
+              onChange={e => setNewAdminEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addAdminEmail() }}
+            />
+            <button className="btn btn-secondary btn-sm" onClick={addAdminEmail}>
+              <PlusIcon size={13} />Add
+            </button>
+          </div>
+          <div className="flex justify-end">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => void savePartial({ admin_emails: s.admin_emails ?? [] }, 'Admin emails saved')}
+              disabled={saving}
+            >
+              {saving ? <><div className="spinner" />Saving…</> : <><SaveIcon size={13} />Save admin emails</>}
             </button>
           </div>
         </div>
