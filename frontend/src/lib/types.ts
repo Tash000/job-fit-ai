@@ -174,6 +174,8 @@ export interface ParsedProfile {
 
 export interface Profile {
   resume_text: string
+  /** Friendly nickname used for the dashboard greeting ("Hi {name}…"). */
+  display_name: string
   parsed_profile: ParsedProfile
 }
 
@@ -201,6 +203,8 @@ export interface Settings {
   active_provider: string
   forbidden_phrases: string[]
   tone_settings: { writingStyle?: string; activeVoice?: boolean; showMetricConfidence?: boolean }
+  /** Emails exempt from rate limits and storage caps (admins). */
+  admin_emails: string[]
   // Provider keys are WRITE-ONLY: the API returns only masked previews.
   keyInfo?: {
     gemini: { index: number; masked: string }[]
