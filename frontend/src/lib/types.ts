@@ -10,6 +10,14 @@ export interface AppItem {
   location: string
   status: string
   match_score: number
+  /** Whether you have submitted an application for this job. */
+  applied: boolean
+  /** ISO date (YYYY-MM-DD) the job was applied to. */
+  applied_date: string | null
+  /** Discreet reminder to check up / send a follow-up. */
+  follow_up: boolean
+  /** Saved for later. */
+  bookmarked: boolean
   created_at: string
 }
 
@@ -33,9 +41,35 @@ export interface Gap {
 
 export interface ATSResult {
   score: number
-  keywords: { found: string[]; missing: string[]; matchRate: number }
+  keywords: {
+    found: string[]
+    missing: string[]
+    matchRate: number
+    fuzzy?: string[]
+  }
   weakBullets: { original: string; issues: string[]; suggestion: string }[]
+  strongBullets?: number
   orderingAlert?: string
+  experience?: {
+    requiredYears?: number | null
+    resumeYears?: number
+    score: number
+    alert?: string | null
+  }
+  formatting?: {
+    score: number
+    issues: string[]
+  }
+  qualifications?: {
+    score: number
+    degree?: string | null
+    certifications?: string[]
+  }
+  breakdown?: {
+    components: { keywords: number; experience: number; bullets: number; formatting: number; qualifications: number }
+    weights: { keywords: number; experience: number; bullets: number; formatting: number; qualifications: number }
+  }
+  improvements?: string[]
   unusedProjects?: { title: string; technologies: string[]; matchingKeywords: string[]; reason: string }[]
 }
 
@@ -81,17 +115,80 @@ export interface AppDetail extends AppItem {
   feedback?: Feedback
 }
 
+export interface ExperienceEntry {
+  role: string
+  company: string
+  duration: string
+  description: string
+}
+
+export interface EducationEntry {
+  degree: string
+  institution: string
+  duration: string
+  description: string
+}
+
+export interface CertificationEntry {
+  name: string
+  issuer: string
+  year: string
+}
+
+export interface AchievementEntry {
+  title: string
+  year: string
+  description: string
+}
+
+export interface LanguageEntry {
+  language: string
+  proficiency: string
+}
+
+export interface AdditionalSection {
+  title: string
+  content: string
+}
+
+export interface ParsedProfile {
+  name: string
+  email: string
+  phone: string
+  address: string
+  links: string[]
+  career_goals: string
+  skills: string[]
+  experience: ExperienceEntry[]
+  education: EducationEntry[]
+  projects: { title: string; technologies: string[]; description: string }[]
+  publications: { title: string; authors: string; journal: string; year: number; abstract: string }[]
+  certifications: CertificationEntry[]
+  achievements: AchievementEntry[]
+  languages: LanguageEntry[]
+  hobbies: string[]
+  declaration: string
+  /** Catch-all: any resume section the parser could not map to a standard field. */
+  additional_sections: AdditionalSection[]
+}
+
 export interface Profile {
   resume_text: string
-  parsed_profile: {
-    name: string
-    email: string
-    phone: string
-    skills: string[]
-    career_goals: string
-    projects: { title: string; technologies: string[]; description: string }[]
-    publications: { title: string; authors: string; journal: string; year: number; abstract: string }[]
-  }
+  parsed_profile: ParsedProfile
+}
+
+export interface Resume {
+  id: number
+  name: string
+  is_active: boolean
+  profile_name: string
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface ResumeLibrary {
+  resumes: Resume[]
+  max: number
 }
 
 export interface Settings {
@@ -130,6 +227,11 @@ export function statusBadge(status: string) {
     Planned: 'badge-analyzed',
   }
   return `badge ${map[status] ?? 'badge-new'}`
+}
+
+/** Green "Applied" tag shown next to the application name. */
+export function appliedBadge() {
+  return 'badge badge-applied'
 }
 
 /** True when the configured AI provider has usable credentials. */
