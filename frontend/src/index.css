@@ -10,56 +10,58 @@
 /* ── 1. PRIMITIVE TOKENS (raw values, never overridden) ──────────────── */
 :root {
   /* Color scale — indigo (primary) — warm professional tone */
-  --color-blue-50:  #F5F7FC;
-  --color-blue-100: #E8ECFA;
-  --color-blue-200: #D4DDF5;
-  --color-blue-300: #B8C7ED;
-  --color-blue-400: #8FA5DC;
-  --color-blue-500: #6B84CD;
-  --color-blue-600: #4E63B8;
-  --color-blue-700: #3D4B95;
-  --color-blue-800: #2D3670;
-  --color-blue-900: #1B1F47;
+  --color-blue-50:  #EFF6FF;
+  --color-blue-100: #DBEAFE;
+  --color-blue-200: #BFDBFE;
+  --color-blue-300: #93C5FD;
+  --color-blue-400: #60A5FA;
+  --color-blue-500: #3B82F6;
+  --color-blue-600: #2563EB;
+  --color-blue-700: #1D4ED8;
+  --color-blue-800: #1E40AF;
+  --color-blue-900: #1E3A8A;
 
-  /* Color scale — violet (secondary) — warm accent */
-  --color-purple-50:  #FAF7FE;
-  --color-purple-100: #F2ECFD;
-  --color-purple-200: #E5D9FB;
-  --color-purple-300: #D4C2F6;
-  --color-purple-400: #B9A4ED;
-  --color-purple-500: #9B84E0;
-  --color-purple-600: #7E6AC8;
-  --color-purple-700: #6552A8;
-  --color-purple-800: #4A3D7E;
-  --color-purple-900: #2F2347;
+  /* Color scale — violet (secondary accent) — subtle indigo-violet */
+  --color-purple-50:  #F5F3FF;
+  --color-purple-100: #EDE9FE;
+  --color-purple-200: #DDD6FE;
+  --color-purple-300: #C4B5FD;
+  --color-purple-400: #A78BFA;
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7C3AED;
+  --color-purple-700: #6D28D9;
+  --color-purple-800: #5B21B6;
+  --color-purple-900: #4C1D95;
 
-  /* Color scale — cyan (brand gradient partner) */
+  /* Color scale — sky/cyan (brand gradient partner) */
+  --color-cyan-300: #67E8F9;
   --color-cyan-400: #22D3EE;
   --color-cyan-500: #06B6D4;
   --color-cyan-600: #0891B2;
 
-  /* Color scale — neutral */
-  --color-gray-50:   #F9FAFB;
-  --color-gray-100:  #F3F4F6;
-  --color-gray-200:  #E5E7EB;
-  --color-gray-300:  #D1D5DB;
-  --color-gray-400:  #9CA3AF;
-  --color-gray-500:  #6B7280;
-  --color-gray-600:  #4B5563;
-  --color-gray-700:  #374151;
-  --color-gray-800:  #1F2937;
-  --color-gray-900:  #111827;
-  --color-gray-950:  #0B0F19;
+  /* Color scale — neutral (cool gray with a blue undertone) */
+  --color-gray-50:   #F8FAFD;
+  --color-gray-100:  #F1F4F9;
+  --color-gray-200:  #E3E8F0;
+  --color-gray-300:  #C9D2E0;
+  --color-gray-400:  #94A0B4;
+  --color-gray-500:  #64708A;
+  --color-gray-600:  #47536B;
+  --color-gray-700:  #343E53;
+  --color-gray-800:  #232B3D;
+  --color-gray-900:  #151B29;
+  --color-gray-950:  #0B0F1A;
 
-  /* Color scale — slate (dark tech surfaces) */
-  --color-slate-800: #1E293B;
-  --color-slate-900: #0F172A;
-  --color-surface-dark: #182138;
+  /* Color scale — navy (dark tech surfaces) */
+  --color-slate-700: #2A3550;
+  --color-slate-800: #1E2942;
+  --color-slate-900: #131C33;
+  --color-surface-dark: #0F1728;
 
-  /* Status primitives */
-  --color-green-500: #22C55E;
-  --color-green-600: #16A34A;
-  --color-green-700: #15803D;
+  /* Status primitives — slightly tuned for the cool blue palette */
+  --color-green-500: #10B981;
+  --color-green-600: #059669;
+  --color-green-700: #047857;
   --color-teal-400:  #2DD4BF;
   --color-teal-600:  #0D9488;
   --color-teal-700:  #0F766E;
@@ -67,8 +69,8 @@
   --color-yellow-600:#D97706;
   --color-yellow-700:#B45309;
   --color-red-400:   #F87171;
-  --color-red-600:   #DC2626;
-  --color-red-700:   #B91C1C;
+  --color-red-600:   #E11D48;
+  --color-red-700:   #BE123C;
   --color-violet-500:#8B5CF6;
   --color-violet-600:#7C3AED;
 
@@ -120,12 +122,12 @@
   --radius-3xl:     1.75rem;
   --radius-full:    9999px;
 
-  /* Shadows — refined elevation scale */
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 10px 24px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.05);
-  --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.14);
-  --shadow-glow: 0 0 24px rgb(75 99 184 / 0.15);
+  /* Shadows — refined elevation scale with a cool blue cast */
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 28px rgb(15 23 42 / 0.12), 0 4px 8px rgb(15 23 42 / 0.05);
+  --shadow-xl: 0 24px 48px rgb(15 23 42 / 0.16);
+  --shadow-glow: 0 0 28px rgb(37 99 235 / 0.18);
 
   /* Duration */
   --duration-150: 150ms;
@@ -145,16 +147,17 @@
 
 /* ── 2. SEMANTIC TOKENS — light (default) ────────────────────────────── */
 :root {
-  --color-background: #FAFBFC;
-  --color-foreground: #1A1D24;
+  /* Cool blue-tinted canvas instead of flat gray — crisp and airy. */
+  --color-background: #F4F7FC;
+  --color-foreground: #0F172A;
   --color-card: #FFFFFF;
-  --color-card-foreground: #1A1D24;
-  --color-muted: #F5F7FB;
-  --color-muted-foreground: #626768;
-  --color-secondary: #F0F2F6;
-  --color-secondary-foreground: #1A1D24;
-  --color-border: #D8DDE5;
-  --color-input: #F5F7FB;
+  --color-card-foreground: #0F172A;
+  --color-muted: #EEF3FA;
+  --color-muted-foreground: #5B6472;
+  --color-secondary: #E9EFF7;
+  --color-secondary-foreground: #0F172A;
+  --color-border: #D8E0EC;
+  --color-input: #EDF2F9;
 
   /* Brand accent (switched by [data-accent]) — default: blue */
   --brand-50:   var(--color-blue-50);
@@ -180,7 +183,7 @@
   --color-error: var(--color-red-600);
   --color-info: var(--brand-500);
 
-  --color-sidebar: #FAFBFC;
+  --color-sidebar: #FFFFFF;
   --color-sidebar-border: var(--color-gray-200);
 
   color-scheme: light;
@@ -201,17 +204,20 @@
 }
 
 /* ── 2b. SEMANTIC TOKENS — dark ──────────────────────────────────────── */
+/* Premium deep-navy dark theme (Geist/Linear-inspired): near-black canvas
+   with a cool blue undertone, surfaces elevated lighter than the canvas,
+   blue-tinted borders, and a bright blue accent for contrast. */
 [data-theme="dark"] {
-  --color-background: #0F1116;
-  --color-foreground: #E9EBEF;
-  --color-card: #16171D;
-  --color-card-foreground: #E9EBEF;
-  --color-muted: #1F2128;
-  --color-muted-foreground: #9AA1A8;
-  --color-secondary: #1A1C24;
-  --color-secondary-foreground: #E9EBEF;
-  --color-border: #353A43;
-  --color-input: #1F2128;
+  --color-background: #0A0F1C;
+  --color-foreground: #E6EDF7;
+  --color-card: #111A2C;
+  --color-card-foreground: #E6EDF7;
+  --color-muted: #182235;
+  --color-muted-foreground: #93A0B8;
+  --color-secondary: #152032;
+  --color-secondary-foreground: #E6EDF7;
+  --color-border: #25314B;
+  --color-input: #16213A;
   --color-ring: var(--brand-400);
 
   --color-primary: var(--brand-500);
@@ -224,7 +230,7 @@
   --color-error: var(--color-red-400);
   --color-info: var(--brand-400);
 
-  --color-sidebar: var(--color-surface-dark);
+  --color-sidebar: #0D1424;
   --color-sidebar-border: var(--color-slate-800);
 
   color-scheme: dark;
@@ -326,18 +332,23 @@
 }
 
 [data-theme="dark"] {
-  --accent-bg:     color-mix(in srgb, var(--brand-500) 14%, transparent);
-  --accent-bg-hover: color-mix(in srgb, var(--brand-500) 22%, transparent);
-  --accent-border: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  --accent-bg:     color-mix(in srgb, var(--brand-500) 16%, transparent);
+  --accent-bg-hover: color-mix(in srgb, var(--brand-500) 24%, transparent);
+  --accent-border: color-mix(in srgb, var(--brand-500) 42%, transparent);
   --teal:          var(--color-teal-400);
   --info:          var(--brand-400);
-  --bg-input:      color-mix(in srgb, #FFFFFF 6%, transparent);
-  --bg-hover:      rgb(255 255 255 / 0.06);
-  --bg-hover-strong: rgb(255 255 255 / 0.1);
+  --bg-input:      color-mix(in srgb, #FFFFFF 7%, transparent);
+  --bg-hover:      rgb(255 255 255 / 0.07);
+  --bg-hover-strong: rgb(255 255 255 / 0.12);
   --topbar-bg:     color-mix(in srgb, var(--color-card) 88%, transparent);
-  --auth-glow-1:   color-mix(in srgb, var(--brand-500) 18%, transparent);
-  --auth-glow-2:   color-mix(in srgb, var(--brand-grad-to) 12%, transparent);
+  --auth-glow-1:   color-mix(in srgb, var(--brand-500) 20%, transparent);
+  --auth-glow-2:   color-mix(in srgb, var(--brand-grad-to) 14%, transparent);
   --logo-gradient: linear-gradient(135deg, var(--brand-400), var(--brand-grad-to));
+  /* Dark shadows need to be softer — no black halo on cards */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 14px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.5), 0 4px 10px rgb(0 0 0 / 0.35);
+  --shadow-xl: 0 24px 56px rgb(0 0 0 / 0.55);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1654,15 +1665,15 @@ code { font-family: var(--font-mono); }
   display: flex; align-items: center; justify-content: center;
   margin-bottom: var(--space-2);
 }
-.stat-blue   { background: #EFF3FA; color: #4E63B8; border: 1px solid #D4DDF5; }
-.stat-teal   { background: #E3F4F1; color: #228B7E; border: 1px solid #C7E9E2; }
-.stat-purple { background: #F5F0FE; color: #7E6AC8; border: 1px solid #E0D3FB; }
-.stat-green  { background: #ECF6E8; color: #3A8F45; border: 1px solid #D4EBD0; }
+.stat-blue   { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+.stat-teal   { background: #F0FDFA; color: #0D9488; border: 1px solid #99F6E4; }
+.stat-purple { background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE; }
+.stat-green  { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
 
-[data-theme="dark"] .stat-blue   { background: #1E2947; color: #8FA5DC; border: 1px solid #2D3D57; }
-[data-theme="dark"] .stat-teal   { background: #1A3A36; color: #66D4BD; border: 1px solid #2D4B45; }
-[data-theme="dark"] .stat-purple { background: #312546; color: #B9A4ED; border: 1px solid #412D5C; }
-[data-theme="dark"] .stat-green  { background: #1F3922; color: #88D998; border: 1px solid #2E4A32; }
+[data-theme="dark"] .stat-blue   { background: #16233F; color: #60A5FA; border: 1px solid #24395F; }
+[data-theme="dark"] .stat-teal   { background: #123B37; color: #2DD4BF; border: 1px solid #1E4D48; }
+[data-theme="dark"] .stat-purple { background: #2A2150; color: #A78BFA; border: 1px solid #3D2E68; }
+[data-theme="dark"] .stat-green  { background: #123A2C; color: #34D399; border: 1px solid #1E4D3D; }
 
 .stat-value { font-family: var(--font-display); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-foreground); }
 .stat-label { font-size: var(--font-size-xs); color: var(--text-muted); }
@@ -1842,7 +1853,7 @@ code { font-family: var(--font-mono); }
   flex-shrink: 0;
 }
 /* Fixed preview swatches (raw values so both options are visible at once). */
-.swatch-blue   { background: linear-gradient(135deg, #2563EB, #06B6D4); }
+.swatch-blue   { background: linear-gradient(135deg, #2563EB, #22D3EE); }
 .swatch-purple { background: linear-gradient(135deg, #7C3AED, #A78BFA); }
 
 .install-prompt {
