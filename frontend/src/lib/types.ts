@@ -18,7 +18,10 @@ export interface AppItem {
   follow_up: boolean
   /** Saved for later. */
   bookmarked: boolean
+  /** ISO datetime the job was added. */
   created_at: string
+  /** ISO datetime the job was last analyzed (null = not analyzed yet). */
+  analyzed_at: string | null
 }
 
 export interface Suitability {
