@@ -21,7 +21,11 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
   async function generatePlan() {
     setPlanning(true)
     try {
-      const r = await fetch(`${API}/api/applications/${app.id}/plan`, { method: 'POST' })
+      const r = await fetch(`${API}/api/applications/${app.id}/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style }),
+      })
       const d = await r.json()
       setPlan(d.plan)
       notify('Plan generated', 'success')
@@ -64,8 +68,27 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
     finally { setRefining(false) }
   }
 
-  function exportLetter(fmt: string) {
-    window.open(`${API}/api/applications/${app.id}/export/${fmt}`, '_blank')
+  /**
+   * Download the exported letter. We fetch the blob through the app's fetch
+   * wrapper so the Supabase Bearer token is attached — a plain window.open()
+   * cannot send the Authorization header and returns 401.
+   */
+  async function exportLetter(fmt: string) {
+    try {
+      const r = await fetch(`${API}/api/applications/${app.id}/export/${fmt}`)
+      if (!r.ok) { notify('Download failed — please try again', 'error'); return }
+      const blob = await r.blob()
+      const disposition = r.headers.get('Content-Disposition') ?? ''
+      const fileMatch = disposition.match(/filename="([^"]+)"/)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileMatch?.[1] ?? `CoverLetter_${app.company.replace(/\s+/g, '_')}.${fmt}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch { notify('Download failed — please try again', 'error') }
   }
 
   const hasAnalysis = !!app.details?.suitability
@@ -188,7 +211,7 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
               <>
                 <div className="cover-letter-box">{app.cover_letter}</div>
                 <div className="flex gap-8" style={{ marginTop: 12 }}>
-                  {[['txt', 'TXT'], ['docx', 'DOCX'], ['latex', 'LaTeX']].map(([fmt, label]) => (
+                  {[['txt', 'TXT'], ['pdf', 'PDF'], ['docx', 'DOCX'], ['latex', 'LaTeX']].map(([fmt, label]) => (
                     <button key={fmt} className="btn btn-secondary btn-sm" onClick={() => exportLetter(fmt)}>
                       <DownloadIcon size={13} />{label}
                     </button>
