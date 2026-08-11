@@ -7,6 +7,7 @@ import {
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Notify } from '../lib/types'
 import { scoreClass, statusBadge, appliedBadge } from '../lib/types'
+import { fmtDay } from '../lib/dates'
 import { ApplicationDetail } from './app-detail/ApplicationDetail'
 
 /** Mirrors backend/database.py:MAX_ANALYSES_PER_USER. */
@@ -394,9 +395,10 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken }: Appl
                       {a.applied && <span className={appliedBadge()}>Applied</span>}
                     </div>
                     <div className="app-position">{a.position}</div>
-                    <div className="flex gap-6 items-center" style={{ marginTop: 4 }}>
+                    <div className="flex gap-6 items-center" style={{ marginTop: 4, flexWrap: 'wrap' }}>
                       <span className={statusBadge(a.status)}>{a.status}</span>
                       {a.location && <span className="text-xs text-muted">{a.location}</span>}
+                      <span className="text-xs text-muted">· Added {fmtDay(a.created_at)}</span>
                     </div>
                   </div>
                   <div className={`score-mini ${scoreClass(a.match_score)}`}>

@@ -402,6 +402,7 @@ def _app_summary(r: db.Application) -> Dict[str, Any]:
         "follow_up": bool(r.follow_up),
         "bookmarked": bool(r.bookmarked),
         "created_at": r.created_at.isoformat() if r.created_at else None,
+        "analyzed_at": r.analyzed_at.isoformat() if r.analyzed_at else None,
     }
 
 
@@ -916,6 +917,7 @@ def analyze_application(app_id: int, request: Request, user_id: str = Depends(au
     row.resume_suggestions = ats_results
     row.match_score = int(overall_match)
     row.status = "Analyzed"
+    row.analyzed_at = datetime.utcnow()
     db_session.commit()
     _log_activity(db_session, user_id, "analyze", f"{row.company} — {row.position} ({int(overall_match)}%)")
     return {"status": "success", "match_score": overall_match}
