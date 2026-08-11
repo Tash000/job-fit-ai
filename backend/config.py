@@ -51,6 +51,11 @@ AUTH_RATE_LIMIT = os.getenv("AUTH_RATE_LIMIT", "30/minute")
 GEMINI_SERVER_KEYS = _split_list(os.getenv("GEMINI_SERVER_KEYS", ""))
 NIM_SERVER_KEYS = _split_list(os.getenv("NIM_SERVER_KEYS", ""))
 
+# ── Admin emails (server-level; users can also whitelist their own in Settings) ──
+# Emails listed here (and in a user's own settings.admin_emails) bypass rate
+# limits and per-account storage caps (500 analyses / 5 resumes).
+ADMIN_EMAILS = _split_list(os.getenv("ADMIN_EMAILS", ""))
+
 # ── Demo mode ────────────────────────────────────────────────────────────────
 # When Supabase is not configured AND environment is not production, the API
 # runs in a single-user demo mode (fixed dev user) so the app is runnable out
