@@ -473,6 +473,29 @@ export function ProfileView({ notify }: { notify: Notify }) {
                 onChange={hobbies => patchProfile({ hobbies })} />
             </div>
           </div>
+
+          <div className="card">
+            <div className="card-header"><AwardIcon size={15} color="var(--warning)" /><span className="card-title">Certifications ({(pp.certifications ?? []).length})</span></div>
+            <div className="card-body">
+              <CertificationEditor items={pp.certifications ?? []} onChange={certifications => patchProfile({ certifications })} />
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header"><AwardIcon size={15} color="var(--teal)" /><span className="card-title">Achievements & Awards ({(pp.achievements ?? []).length})</span></div>
+            <div className="card-body">
+              <AchievementEditor items={pp.achievements ?? []} onChange={achievements => patchProfile({ achievements })} />
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header"><FileTextIcon size={15} color="var(--text-muted)" /><span className="card-title">Declaration</span></div>
+            <div className="card-body">
+              <textarea className="form-textarea" placeholder="e.g. I hereby declare that the above information is true to the best of my knowledge."
+                value={pp.declaration ?? ''}
+                onChange={e => patchProfile({ declaration: e.target.value })} style={{ minHeight: 70 }} />
+            </div>
+          </div>
         </div>
 
         {/* ── Right column ── */}
@@ -591,29 +614,6 @@ export function ProfileView({ notify }: { notify: Notify }) {
               <button className="btn btn-ghost btn-sm" onClick={() => patchProfile({ publications: [...(pp.publications ?? []), { title: 'New Publication', authors: '', journal: '', year: new Date().getFullYear(), abstract: '' }] })}>
                 <PlusIcon size={13} />Add Publication
               </button>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header"><AwardIcon size={15} color="var(--warning)" /><span className="card-title">Certifications ({(pp.certifications ?? []).length})</span></div>
-            <div className="card-body">
-              <CertificationEditor items={pp.certifications ?? []} onChange={certifications => patchProfile({ certifications })} />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header"><AwardIcon size={15} color="var(--teal)" /><span className="card-title">Achievements & Awards ({(pp.achievements ?? []).length})</span></div>
-            <div className="card-body">
-              <AchievementEditor items={pp.achievements ?? []} onChange={achievements => patchProfile({ achievements })} />
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header"><FileTextIcon size={15} color="var(--text-muted)" /><span className="card-title">Declaration</span></div>
-            <div className="card-body">
-              <textarea className="form-textarea" placeholder="e.g. I hereby declare that the above information is true to the best of my knowledge."
-                value={pp.declaration ?? ''}
-                onChange={e => patchProfile({ declaration: e.target.value })} style={{ minHeight: 70 }} />
             </div>
           </div>
 
