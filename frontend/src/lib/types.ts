@@ -205,11 +205,60 @@ export interface Settings {
   tone_settings: { writingStyle?: string; activeVoice?: boolean; showMetricConfidence?: boolean }
   /** Emails exempt from rate limits and storage caps (admins). */
   admin_emails: string[]
+  /** Whether the signed-in account may use the admin console. */
+  is_admin?: boolean
   // Provider keys are WRITE-ONLY: the API returns only masked previews.
   keyInfo?: {
     gemini: { index: number; masked: string }[]
     nim: { index: number; masked: string }[]
   }
+}
+
+// ── Admin console domain types ───────────────────────────────────────────
+
+export interface AdminOverview {
+  totals: {
+    users: number
+    applications: number
+    analyses: number
+    resumes: number
+    storage_bytes: number
+  }
+  today: { analyses: number; new_users: number }
+  last7d: { analyses: number; active_users: number }
+  avg_match: number
+  by_provider: Record<string, number>
+  limits: { default_analysis: number; default_resume: number }
+}
+
+export interface AdminUser {
+  user_id: string
+  email: string
+  display_name: string
+  created_at: string | null
+  last_seen: string | null
+  applications: number
+  analyses: number
+  resumes: number
+  storage_bytes: number
+  /** Per-user analysis cap override (null → platform default 500). */
+  analysis_limit: number | null
+  /** Per-user resume cap override (null → platform default 5). */
+  resume_limit: number | null
+  is_admin: boolean
+}
+
+export interface AdminUserDetail extends AdminUser {
+  recent_applications: AppItem[]
+}
+
+export interface AdminActivityItem {
+  id: number
+  user_id: string
+  email: string
+  action: string
+  detail: string
+  created_at: string | null
 }
 
 export type Notify = (msg: string, type?: 'info' | 'success' | 'error') => void
