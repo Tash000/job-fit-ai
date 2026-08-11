@@ -35,6 +35,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [focusApp, setFocusApp] = useState<number | null>(null)
   const [newAppToken, setNewAppToken] = useState(0)
+  const [pasteToken, setPasteToken] = useState(0)
 
   const notify = useCallback((msg: string, type: 'info' | 'success' | 'error' = 'info') => setToast({ msg, type }), [])
   const closeToast = useCallback(() => setToast(null), [])
@@ -46,12 +47,19 @@ export default function App() {
     return () => window.removeEventListener('vitralume:auth-expired', onExpired)
   }, [signOut])
 
+  // Only touch the settings endpoint when signed in — signed-out visitors on the
+  // landing page should never trigger API calls (fixes stray 401/500 network errors).
+  const userId = user?.id
   useEffect(() => {
+    if (!userId) {
+      setSettings(null)
+      return
+    }
     fetch(`${API}/api/settings`)
-      .then(r => r.json())
-      .then(setSettings)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) setSettings(d) })
       .catch(() => {})
-  }, [user?.id])
+  }, [userId])
 
   if (loading) {
     return (
@@ -157,13 +165,13 @@ export default function App() {
             <DashboardView
               onOpenApp={id => goToApps(id)}
               onNewApp={() => { setFocusApp(null); setNav('apps'); setNewAppToken(t => t + 1) }}
-              onSmartPaste={() => { setFocusApp(null); setNav('apps') }}
+              onSmartPaste={() => { setFocusApp(null); setNav('apps'); setPasteToken(t => t + 1) }}
               onGoTo={v => setNav(v)}
               userName={user.email.split('@')[0]}
             />
           )}
           {nav === 'apps' && (
-            <ApplicationsView notify={notify} focusId={focusApp} newToken={newAppToken} />
+            <ApplicationsView notify={notify} focusId={focusApp} newToken={newAppToken} pasteToken={pasteToken} />
           )}
           {nav === 'profile' && <ProfileView notify={notify} />}
           {nav === 'settings' && (
