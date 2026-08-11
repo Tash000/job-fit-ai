@@ -34,7 +34,7 @@ def clean_db():
     yield
     session = main.db.SessionLocal()
     try:
-        for model in (main.db.UserSettings, main.db.Profile, main.db.Application, main.db.CompanyResearch):
+        for model in (main.db.UserSettings, main.db.Profile, main.db.Application, main.db.Resume, main.db.CompanyResearch):
             session.query(model).delete()
         session.commit()
     finally:
