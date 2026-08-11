@@ -8,61 +8,88 @@ from fastapi.testclient import TestClient
 from tests.conftest import auth
 
 # A real-looking JWT so `_email_from_request` can read the `email` claim.
+# ``sub`` is deterministic per email so settings stay user-scoped across calls.
 def _token(email: str) -> str:
     import jwt as pyjwt
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    # No iat/exp on purpose: the token string must be byte-for-byte identical
+    # across calls so the fake-auth user id (uuid5 of the token) is stable.
     payload = {
-        "sub": str(uuid.uuid4()),
+        "sub": str(uuid.uuid5(uuid.NAMESPACE_URL, email)),
         "aud": "authenticated",
         "email": email,
-        "iat": now,
-        "exp": now + datetime.timedelta(hours=1),
     }
     return pyjwt.encode(payload, "test-jwt-secret", algorithm="HS256")
 
 
-# ── Admin email settings round-trip ───────────────────────────────────────────
+# ── Admin email settings (admins only) ───────────────────────────────────────
 
-def test_admin_emails_roundtrip_and_dedupe(client: TestClient):
+def _admin_headers(email: str = "owner@example.com") -> dict:
+    return {"Authorization": f"Bearer {_token(email)}"}
+
+
+def test_admin_emails_roundtrip_and_dedupe(client: TestClient, monkeypatch):
+    import config
+
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
     resp = client.patch(
         "/api/settings",
-        headers=auth("alice"),
+        headers=_admin_headers(),
         json={"admin_emails": ["Owner@Example.com", "owner@example.com", "friend@x.com"]},
     )
     assert resp.status_code == 200
-    settings = client.get("/api/settings", headers=auth("alice")).json()
+    settings = client.get("/api/settings", headers=_admin_headers()).json()
     # Lowercased + de-duplicated, order preserved.
     assert settings["admin_emails"] == ["owner@example.com", "friend@x.com"]
 
 
-def test_admin_emails_reject_malformed(client: TestClient):
+def test_admin_emails_reject_malformed(client: TestClient, monkeypatch):
     """Non-email junk (SQL-ish / malformed) is never stored."""
+    import config
+
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
     resp = client.patch(
         "/api/settings",
-        headers=auth("alice"),
+        headers=_admin_headers(),
         json={"admin_emails": ["valid@example.com", "not-an-email", "Bob'; DROP TABLE--", "@missing"]},
     )
     assert resp.status_code == 200
-    settings = client.get("/api/settings", headers=auth("alice")).json()
+    settings = client.get("/api/settings", headers=_admin_headers()).json()
     assert settings["admin_emails"] == ["valid@example.com"]
 
 
-def test_admin_emails_are_user_scoped(client: TestClient):
-    client.patch("/api/settings", headers=auth("alice"), json={"admin_emails": ["owner@example.com"]})
-    assert client.get("/api/settings", headers=auth("bob")).json()["admin_emails"] == []
+def test_admin_emails_are_user_scoped(client: TestClient, monkeypatch):
+    import config
+
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
+    client.patch("/api/settings", headers=_admin_headers(), json={"admin_emails": ["friend@x.com"]})
+    # The whitelist is set for the owner and never leaks to regular users.
+    owner_settings = client.get("/api/settings", headers=_admin_headers()).json()
+    assert owner_settings["admin_emails"] == ["friend@x.com"]
+    bob_settings = client.get("/api/settings", headers=auth("bob")).json()
+    assert "admin_emails" not in bob_settings
+    assert bob_settings["is_admin"] is False
+
+
+def test_non_admin_cannot_set_admin_emails(client: TestClient):
+    """Self-grant is blocked: only admins may manage the whitelist."""
+    resp = client.patch(
+        "/api/settings",
+        headers=_admin_headers("someone@example.com"),
+        json={"admin_emails": ["someone@example.com"]},
+    )
+    assert resp.status_code == 403
 
 
 # ── Admin bypass: 500-analysis storage limit ──────────────────────────────────
 
 def test_admin_bypasses_analysis_limit(client: TestClient, monkeypatch):
+    import config
     import main
 
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
     monkeypatch.setattr(main, "MAX_ANALYSES_PER_USER", 3)
-    headers = {"Authorization": f"Bearer {_token('owner@example.com')}"}
-
-    # Whitelist own email as admin.
-    assert client.patch("/api/settings", headers=headers, json={"admin_emails": ["owner@example.com"]}).status_code == 200
+    headers = _admin_headers()
 
     for i in range(5):  # 3 would be the cap for a normal user
         resp = client.post(
@@ -98,11 +125,12 @@ def test_non_admin_still_hits_analysis_limit(client: TestClient, monkeypatch):
 # ── Admin bypass: 5-resume storage limit ─────────────────────────────────────
 
 def test_admin_bypasses_resume_limit(client: TestClient, monkeypatch):
+    import config
     import main
 
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
     monkeypatch.setattr(main, "MAX_RESUMES_PER_USER", 2)
-    headers = {"Authorization": f"Bearer {_token('owner@example.com')}"}
-    assert client.patch("/api/settings", headers=headers, json={"admin_emails": ["owner@example.com"]}).status_code == 200
+    headers = _admin_headers()
 
     for i in range(4):
         resp = client.post(
@@ -134,10 +162,11 @@ def test_server_level_admin_env_bypasses_limits(client: TestClient, monkeypatch)
 # ── Admin bypass: generation rate limit ──────────────────────────────────────
 
 def test_admin_bypasses_generation_rate_limit(client: TestClient, monkeypatch):
+    import config
     import main
 
-    headers = {"Authorization": f"Bearer {_token('owner@example.com')}"}
-    assert client.patch("/api/settings", headers=headers, json={"admin_emails": ["owner@example.com"]}).status_code == 200
+    monkeypatch.setattr(config, "ADMIN_EMAILS", ["owner@example.com"])
+    headers = _admin_headers()
 
     # Force RATE_LIMIT_ENABLED on and a tiny limit so a normal user would 429.
     monkeypatch.setattr(main.config, "RATE_LIMIT_ENABLED", True)
