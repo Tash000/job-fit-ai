@@ -7,13 +7,18 @@ never returned to clients, and decrypted in memory only for the request that
 needs them.
 """
 
+import difflib
 import json
 import logging
 import os
+import re
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import jwt as pyjwt
+import requests as _requests
 from cryptography.fernet import InvalidToken
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -28,10 +33,14 @@ from database import (
     DEFAULT_GEMINI_MODELS,
     DEFAULT_NIM_MODELS,
     DEFAULT_TONE,
+    MAX_ANALYSES_PER_USER,
+    MAX_RESUMES_PER_USER,
+    RESUME_NAME_MAX,
+    RESUME_NAME_PATTERN,
 )
 from security import KeyCipher, current_user_id
 from services.ats_optimizer import calculate_ats_score, suggest_unused_projects
-from services.exporter import export_docx, export_latex, export_txt
+from services.exporter import export_docx, export_latex, export_pdf, export_txt
 from services.generator import CopilotGenerator
 from services.parser import parse_pdf
 from services.research_matcher import match_research_profile
@@ -116,6 +125,10 @@ class ApplicationCreate(BaseModel):
 class ApplicationGenerateRequest(BaseModel):
     style: str = "industrial"
     plan: List[dict] = []
+
+
+class ApplicationPlanRequest(BaseModel):
+    style: str = "industrial"
 
 
 class JobExtractRequest(BaseModel):
@@ -284,6 +297,139 @@ def _get_owned_application(db_session: Session, user_id: str, app_id: int) -> db
     return row
 
 
+def _get_owned_resume(db_session: Session, user_id: str, resume_id: int) -> db.Resume:
+    row = db_session.query(db.Resume).filter_by(id=resume_id, user_id=user_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return row
+
+
+def _app_summary(r: db.Application) -> Dict[str, Any]:
+    """List-item serialization of an application (includes tracking flags)."""
+    return {
+        "id": r.id,
+        "company": r.company,
+        "position": r.position,
+        "location": r.location,
+        "status": r.status,
+        "match_score": r.match_score,
+        "applied": bool(r.applied),
+        "applied_date": r.applied_date,
+        "follow_up": bool(r.follow_up),
+        "bookmarked": bool(r.bookmarked),
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    }
+
+
+def _app_detail(r: db.Application) -> Dict[str, Any]:
+    """Full serialization of an application."""
+    return {
+        **_app_summary(r),
+        "description": r.description,
+        "details": r.details or {},
+        "resume_suggestions": r.resume_suggestions or {},
+        "cover_letter_plan": r.cover_letter_plan or [],
+        "cover_letter": r.cover_letter,
+        "audit_trail": r.audit_trail or [],
+        "feedback": r.feedback or {},
+    }
+
+
+# ── Duplicate detection ───────────────────────────────────────────────────────
+
+def _normalize_text(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+
+def _find_duplicate_application(
+    db_session: Session,
+    user_id: str,
+    company: str,
+    position: str,
+    description: str,
+    exclude_id: Optional[int] = None,
+) -> Optional[db.Application]:
+    """
+    Find an existing application with the SAME company (normalized) and a
+    near-identical job description (or same company+position when both
+    descriptions are empty). Returns the first match or ``None``.
+    """
+    norm_company = _normalize_text(company)
+    if not norm_company:
+        return None
+    norm_position = _normalize_text(position)
+    norm_desc = _normalize_text(description)
+
+    query = db_session.query(db.Application).filter_by(user_id=user_id)
+    if exclude_id is not None:
+        query = query.filter(db.Application.id != exclude_id)
+
+    for row in query.all():
+        if _normalize_text(row.company) != norm_company:
+            continue
+        other_desc = _normalize_text(row.description or "")
+        if norm_desc and other_desc:
+            ratio = difflib.SequenceMatcher(None, norm_desc, other_desc).ratio()
+            if ratio >= 0.9:
+                return row
+        elif not norm_desc and not other_desc:
+            if norm_position and _normalize_text(row.position) == norm_position:
+                return row
+    return None
+
+
+def _duplicate_error(row: db.Application) -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "reason": "duplicate",
+            "message": "You already have this job analyzed — same company and job description.",
+            "existing_id": row.id,
+            "existing_company": row.company,
+            "existing_position": row.position,
+        },
+    )
+
+
+# ── Resume name validation (injection-safe naming) ────────────────────────────
+
+def _validate_resume_name(name: str) -> str:
+    cleaned = (name or "").strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Resume name cannot be empty.")
+    if len(cleaned) > RESUME_NAME_MAX:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Resume name must be {RESUME_NAME_MAX} characters or fewer.",
+        )
+    if not re.match(RESUME_NAME_PATTERN, cleaned):
+        raise HTTPException(
+            status_code=400,
+            detail="Resume name may only contain letters, numbers, spaces, dots, dashes and underscores.",
+        )
+    return cleaned
+
+
+def _resume_summary(r: db.Resume) -> Dict[str, Any]:
+    pp = r.parsed_profile or {}
+    return {
+        "id": r.id,
+        "name": r.name,
+        "is_active": bool(r.is_active),
+        "profile_name": pp.get("name", ""),
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+    }
+
+
+def _mirror_resume_to_profile(db_session: Session, user_id: str, resume_row: db.Resume) -> None:
+    """Copy a resume's content into the Profile row that powers analysis."""
+    row = _get_or_create_profile(db_session, user_id)
+    row.resume_text = resume_row.resume_text or ""
+    row.parsed_profile = resume_row.parsed_profile or {}
+    db_session.commit()
+
+
 def _get_or_create_profile(db_session: Session, user_id: str) -> db.Profile:
     row = db_session.query(db.Profile).filter_by(user_id=user_id).first()
     if row is None:
@@ -294,10 +440,35 @@ def _get_or_create_profile(db_session: Session, user_id: str) -> db.Profile:
     return row
 
 
+# All standard resume sections the parser understands, plus the catch-all
+# "additional_sections" so that ANY section present in a resume is kept — no
+# data is ever dropped during parsing.
 EMPTY_PROFILE = {
-    "name": "", "email": "", "phone": "", "career_goals": "",
-    "skills": [], "projects": [], "publications": [],
+    "name": "", "email": "", "phone": "", "address": "", "links": [],
+    "career_goals": "", "skills": [], "experience": [], "education": [],
+    "projects": [], "publications": [], "certifications": [],
+    "achievements": [], "languages": [], "hobbies": [], "declaration": "",
+    "additional_sections": [],
 }
+
+_PROFILE_LIST_KEYS = [
+    "links", "skills", "experience", "education", "projects", "publications",
+    "certifications", "achievements", "languages", "hobbies", "additional_sections",
+]
+_PROFILE_TEXT_KEYS = ["name", "email", "phone", "address", "career_goals", "declaration"]
+
+
+def _normalize_profile(parsed: dict) -> dict:
+    """Guarantee every standard section key exists with a valid type — even when
+    the LLM or a client sends missing or malformed fields."""
+    out = dict(parsed or {})
+    for key in _PROFILE_TEXT_KEYS:
+        if not isinstance(out.get(key), str):
+            out[key] = ""
+    for key in _PROFILE_LIST_KEYS:
+        if not isinstance(out.get(key), list):
+            out[key] = []
+    return out
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -311,6 +482,7 @@ def get_settings(user_id: str = Depends(current_user_id), db_session: Session = 
 
 
 @app.post("/api/settings")
+@app.patch("/api/settings")
 def update_settings(
     payload: SettingsUpdate,
     user_id: str = Depends(current_user_id),
@@ -362,6 +534,7 @@ def get_profile(user_id: str = Depends(current_user_id), db_session: Session = D
 
 
 @app.post("/api/profile")
+@app.patch("/api/profile")
 def update_profile(
     payload: ProfileUpdate,
     user_id: str = Depends(current_user_id),
@@ -369,7 +542,12 @@ def update_profile(
 ):
     row = _get_or_create_profile(db_session, user_id)
     row.resume_text = payload.resume_text
-    row.parsed_profile = payload.parsed_profile or {}
+    row.parsed_profile = _normalize_profile(payload.parsed_profile)
+    # Keep the active saved resume in sync with manual profile edits.
+    active = db_session.query(db.Resume).filter_by(user_id=user_id, is_active=True).first()
+    if active:
+        active.resume_text = payload.resume_text
+        active.parsed_profile = _normalize_profile(payload.parsed_profile)
     db_session.commit()
     return {"status": "success", "message": "Profile updated"}
 
@@ -398,13 +576,7 @@ async def upload_resume(
     extracted_text = parse_pdf(file_bytes)
 
     generator = build_generator_for(user_id, db_session)
-    parsed_profile = generator.parse_resume(extracted_text) or {}
-    for key in ["name", "email", "phone", "career_goals"]:
-        if not parsed_profile.get(key):
-            parsed_profile[key] = ""
-    for key in ["skills", "projects", "publications"]:
-        if not isinstance(parsed_profile.get(key), list):
-            parsed_profile[key] = []
+    parsed_profile = _normalize_profile(generator.parse_resume(extracted_text))
 
     _save_profile(db_session, user_id, extracted_text, parsed_profile)
     return {"status": "success", "resume_text": extracted_text, "parsed_profile": parsed_profile}
@@ -422,7 +594,7 @@ def parse_resume_text(
 
     _check_generation_limit(user_id)
     generator = build_generator_for(user_id, db_session)
-    parsed_profile = generator.parse_resume(raw_text) or {}
+    parsed_profile = _normalize_profile(generator.parse_resume(raw_text))
     _save_profile(db_session, user_id, raw_text, parsed_profile)
     return {"status": "success", "parsed_profile": parsed_profile}
 
@@ -453,18 +625,7 @@ def list_applications(user_id: str = Depends(current_user_id), db_session: Sessi
         .order_by(db.Application.id.desc())
         .all()
     )
-    return [
-        {
-            "id": r.id,
-            "company": r.company,
-            "position": r.position,
-            "location": r.location,
-            "status": r.status,
-            "match_score": r.match_score,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        }
-        for r in rows
-    ]
+    return [_app_summary(r) for r in rows]
 
 
 @app.post("/api/applications")
@@ -473,6 +634,39 @@ def create_application(
     user_id: str = Depends(current_user_id),
     db_session: Session = Depends(db.get_db),
 ):
+    # Duplicate guard: same company + same (near-identical) job description.
+    dup = _find_duplicate_application(
+        db_session, user_id, payload.company, payload.position, payload.description
+    )
+    if dup:
+        raise _duplicate_error(dup)
+
+    # Per-account storage limit: max MAX_ANALYSES_PER_USER analyses.
+    count = db_session.query(db.Application).filter_by(user_id=user_id).count()
+    if count >= MAX_ANALYSES_PER_USER:
+        oldest = (
+            db_session.query(db.Application)
+            .filter_by(user_id=user_id)
+            .order_by(db.Application.id.asc())
+            .first()
+        )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "reason": "limit",
+                "message": f"Storage limit reached — this account can hold {MAX_ANALYSES_PER_USER} job analyses. Delete the oldest one to add a new job.",
+                "count": count,
+                "max": MAX_ANALYSES_PER_USER,
+                "oldest": {
+                    "id": oldest.id,
+                    "company": oldest.company,
+                    "position": oldest.position,
+                }
+                if oldest
+                else None,
+            },
+        )
+
     row = db.Application(
         user_id=user_id,
         company=payload.company.strip(),
@@ -496,24 +690,42 @@ def delete_application(app_id: int, user_id: str = Depends(current_user_id), db_
     return {"status": "success", "message": "Application deleted"}
 
 
+class ApplicationFlags(BaseModel):
+    """Tracking flags for an application (applied / follow-up / bookmark)."""
+
+    applied: Optional[bool] = None
+    applied_date: Optional[str] = None
+    follow_up: Optional[bool] = None
+    bookmarked: Optional[bool] = None
+
+
+@app.patch("/api/applications/{app_id}")
+def update_application_flags(
+    app_id: int,
+    payload: ApplicationFlags,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    row = _get_owned_application(db_session, user_id, app_id)
+    if payload.applied is not None:
+        row.applied = payload.applied
+    if payload.applied_date is not None:
+        row.applied_date = payload.applied_date or None
+    if payload.follow_up is not None:
+        row.follow_up = payload.follow_up
+    if payload.bookmarked is not None:
+        row.bookmarked = payload.bookmarked
+    if row.applied and not row.applied_date:
+        row.applied_date = datetime.utcnow().strftime("%Y-%m-%d")
+    db_session.commit()
+    db_session.refresh(row)
+    return {"status": "success", "application": _app_summary(row)}
+
+
 @app.get("/api/applications/{app_id}")
 def get_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
-    return {
-        "id": row.id,
-        "company": row.company,
-        "position": row.position,
-        "location": row.location,
-        "description": row.description,
-        "status": row.status,
-        "match_score": row.match_score,
-        "details": row.details or {},
-        "resume_suggestions": row.resume_suggestions or {},
-        "cover_letter_plan": row.cover_letter_plan or [],
-        "cover_letter": row.cover_letter,
-        "audit_trail": row.audit_trail or [],
-        "feedback": row.feedback or {},
-    }
+    return _app_detail(row)
 
 
 # Mock professor papers — replace with a real publication API (e.g. OpenAlex) later.
@@ -534,6 +746,15 @@ _SEED_PROFESSOR_PAPERS = [
 @app.post("/api/applications/{app_id}/analyze")
 def analyze_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
+
+    # If this application's description matches another saved one for the same
+    # company, it's a duplicate job — point the user at the existing analysis.
+    dup = _find_duplicate_application(
+        db_session, user_id, row.company, row.position, row.description, exclude_id=row.id
+    )
+    if dup:
+        raise _duplicate_error(dup)
+
     _check_generation_limit(user_id)
 
     profile_row = _get_or_create_profile(db_session, user_id)
@@ -574,14 +795,24 @@ def analyze_application(app_id: int, user_id: str = Depends(current_user_id), db
 
 
 @app.post("/api/applications/{app_id}/plan")
-def plan_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def plan_application(
+    app_id: int,
+    payload: Optional[ApplicationPlanRequest] = None,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
     row = _get_owned_application(db_session, user_id, app_id)
     if not row.details:
         raise HTTPException(status_code=400, detail="Run analysis first")
 
     _check_generation_limit(user_id)
     generator = build_generator_for(user_id, db_session)
-    plan = generator.plan_cover_letter(row.details.get("jobAnalysis", {}), row.details.get("suitability", {}))
+    style = (payload.style if payload else "industrial") or "industrial"
+    plan = generator.plan_cover_letter(
+        row.details.get("jobAnalysis", {}),
+        row.details.get("suitability", {}),
+        style=style,
+    )
     row.cover_letter_plan = plan
     db_session.commit()
     return {"status": "success", "plan": plan}
@@ -631,10 +862,14 @@ def export_application_letter(app_id: int, export_format: str, user_id: str = De
     pp = profile_row.parsed_profile or {}
     candidate_name = pp.get("name") or "Candidate Name"
     candidate_email = pp.get("email") or "email@example.com"
-    candidate_phone = pp.get("phone") or "+49 123 456789"
+    candidate_phone = pp.get("phone") or ""
+    candidate_address = pp.get("address") or ""
+    links = pp.get("links") or []
+    candidate_links = " · ".join(str(l) for l in links if str(l).strip()) if links else ""
+    subject = f"Application for {row.position or 'the position'} — {row.company or 'your team'}"
 
-    safe_company = (row.company or "Company").replace(" ", "_")
-    safe_position = (row.position or "Position").replace(" ", "_")
+    safe_company = re.sub(r"[^A-Za-z0-9_\-]+", "_", row.company or "Company")
+    safe_position = re.sub(r"[^A-Za-z0-9_\-]+", "_", row.position or "Position")
     filename = f"CoverLetter_{safe_company}_{safe_position}"
 
     if export_format == "txt":
@@ -643,19 +878,42 @@ def export_application_letter(app_id: int, export_format: str, user_id: str = De
             media_type="text/plain",
             headers={"Content-Disposition": f'attachment; filename="{filename}.txt"'},
         )
-    if export_format == "docx":
+    if export_format == "pdf":
+        try:
+            content = export_pdf(
+                row.cover_letter, candidate_name, candidate_email, candidate_phone,
+                candidate_address, candidate_links, row.company, row.position, subject,
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         return Response(
-            content=export_docx(row.cover_letter, candidate_name, candidate_email, candidate_phone),
+            content=content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.pdf"'},
+        )
+    if export_format == "docx":
+        try:
+            content = export_docx(
+                row.cover_letter, candidate_name, candidate_email, candidate_phone,
+                candidate_address, candidate_links, row.company, row.position, subject,
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return Response(
+            content=content,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={"Content-Disposition": f'attachment; filename="{filename}.docx"'},
         )
     if export_format == "latex":
         return Response(
-            content=export_latex(row.cover_letter, candidate_name, candidate_email, candidate_phone),
+            content=export_latex(
+                row.cover_letter, candidate_name, candidate_email, candidate_phone,
+                candidate_address, candidate_links, row.company, row.position, subject,
+            ),
             media_type="application/x-tex",
             headers={"Content-Disposition": f'attachment; filename="{filename}.tex"'},
         )
-    raise HTTPException(status_code=400, detail="Invalid format. Supported: txt, docx, latex")
+    raise HTTPException(status_code=400, detail="Invalid format. Supported: txt, pdf, docx, latex")
 
 
 @app.post("/api/applications/{app_id}/refine")
@@ -694,6 +952,263 @@ def refine_application_letter(
         "cover_letter": results["coverLetter"],
         "feedback": results.get("feedback", {}),
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESUME LIBRARY ENDPOINTS (max 5 per account, injection-safe names)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ResumeCreate(BaseModel):
+    name: str = "Resume"
+    resume_text: str = ""
+    parsed_profile: dict = {}
+
+
+class ResumeUpdate(BaseModel):
+    name: Optional[str] = None
+    resume_text: Optional[str] = None
+    parsed_profile: Optional[dict] = None
+
+
+@app.get("/api/resumes")
+def list_resumes(user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+    rows = (
+        db_session.query(db.Resume)
+        .filter_by(user_id=user_id)
+        .order_by(db.Resume.created_at.desc())
+        .all()
+    )
+    return {"resumes": [_resume_summary(r) for r in rows], "max": MAX_RESUMES_PER_USER}
+
+
+@app.post("/api/resumes")
+def create_resume(
+    payload: ResumeCreate,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
+    if count >= MAX_RESUMES_PER_USER:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "reason": "resume_limit",
+                "message": f"Resume library is full ({MAX_RESUMES_PER_USER} max). Delete or rename an existing resume first.",
+                "count": count,
+                "max": MAX_RESUMES_PER_USER,
+            },
+        )
+    name = _validate_resume_name(payload.name)
+    row = db.Resume(
+        user_id=user_id,
+        name=name,
+        resume_text=payload.resume_text or "",
+        parsed_profile=payload.parsed_profile or {},
+    )
+    db_session.add(row)
+    db_session.commit()
+    db_session.refresh(row)
+    return {"status": "success", "resume": _resume_summary(row)}
+
+
+@app.post("/api/resumes/upload")
+async def upload_resume_pdf(
+    file: UploadFile = File(...),
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    """Upload a PDF into the resume library (max 5), parse it, and make it active."""
+    count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
+    if count >= MAX_RESUMES_PER_USER:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "reason": "resume_limit",
+                "message": f"Resume library is full ({MAX_RESUMES_PER_USER} max). Delete or rename an existing resume first.",
+                "count": count,
+                "max": MAX_RESUMES_PER_USER,
+            },
+        )
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    if file.size and file.size > 15 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="PDF too large (max 15 MB).")
+
+    _check_generation_limit(user_id)
+    file_bytes = await file.read()
+    extracted_text = parse_pdf(file_bytes)
+
+    generator = build_generator_for(user_id, db_session)
+    parsed_profile = generator.parse_resume(extracted_text) or {}
+    for key in ["name", "email", "phone", "career_goals"]:
+        if not parsed_profile.get(key):
+            parsed_profile[key] = ""
+    for key in ["skills", "projects", "publications"]:
+        if not isinstance(parsed_profile.get(key), list):
+            parsed_profile[key] = []
+
+    # Default name from the file name (sanitized to the safe character set).
+    base = re.sub(r"\.pdf$", "", file.filename or "", flags=re.IGNORECASE).strip()
+    base = re.sub(r"[^A-Za-z0-9 _.-]", " ", base)
+    base = re.sub(r"\s+", " ", base).strip().strip("._-")
+    name = _validate_resume_name((base[:RESUME_NAME_MAX] or "Resume"))
+
+    # Deactivate others, then make this the active resume.
+    db_session.query(db.Resume).filter_by(user_id=user_id, is_active=True).update({"is_active": False})
+    row = db.Resume(
+        user_id=user_id,
+        name=name,
+        resume_text=extracted_text,
+        parsed_profile=parsed_profile,
+        is_active=True,
+    )
+    db_session.add(row)
+    db_session.commit()
+    db_session.refresh(row)
+    _mirror_resume_to_profile(db_session, user_id, row)
+    return {
+        "status": "success",
+        "resume": _resume_summary(row),
+        "resume_text": extracted_text,
+        "parsed_profile": parsed_profile,
+    }
+
+
+@app.patch("/api/resumes/{resume_id}")
+def update_resume(
+    resume_id: int,
+    payload: ResumeUpdate,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    row = _get_owned_resume(db_session, user_id, resume_id)
+    if payload.name is not None:
+        row.name = _validate_resume_name(payload.name)
+    if payload.resume_text is not None:
+        row.resume_text = payload.resume_text
+    if payload.parsed_profile is not None:
+        row.parsed_profile = payload.parsed_profile
+    db_session.commit()
+    db_session.refresh(row)
+    return {"status": "success", "resume": _resume_summary(row)}
+
+
+@app.delete("/api/resumes/{resume_id}")
+def delete_resume(
+    resume_id: int,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    row = _get_owned_resume(db_session, user_id, resume_id)
+    db_session.delete(row)
+    db_session.commit()
+    return {"status": "success", "message": "Resume deleted"}
+
+
+@app.post("/api/resumes/{resume_id}/activate")
+def activate_resume(
+    resume_id: int,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    row = _get_owned_resume(db_session, user_id, resume_id)
+    db_session.query(db.Resume).filter_by(user_id=user_id, is_active=True).update({"is_active": False})
+    row.is_active = True
+    db_session.commit()
+    _mirror_resume_to_profile(db_session, user_id, row)
+    db_session.refresh(row)
+    return {"status": "success", "resume": _resume_summary(row)}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ACCOUNT DATA MANAGEMENT (password-verified clear/reset)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AccountClearRequest(BaseModel):
+    # "keys" → clear API keys & setup only; "data" → clear resumes/analyses/profile;
+    # "all"  → wipe everything (start as a new account).
+    scope: str
+    password: str = ""
+
+
+def _email_from_request(request: Request) -> str:
+    """Best-effort email claim from the (already verified) access token."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        return ""
+    try:
+        payload = pyjwt.decode(auth_header[7:].strip(), options={"verify_signature": False})
+        return payload.get("email") or ""
+    except Exception:
+        return ""
+
+
+def _verify_account_password(user_id: str, email: str, password: str) -> bool:
+    """Confirm the account password before destructive actions.
+
+    The API never stores passwords — we verify by attempting a real Supabase
+    sign-in with the user's email (from their own access token) + the supplied
+    password. In demo mode (auth bypassed) any non-empty password is accepted.
+    """
+    if config.DEMO_MODE:
+        return bool(password)
+    if not password or not email or not config.SUPABASE_URL or not config.SUPABASE_ANON_KEY:
+        return False
+    try:
+        resp = _requests.post(
+            f"{config.SUPABASE_URL}/auth/v1/token?grant_type=password",
+            json={"email": email, "password": password},
+            headers={"apikey": config.SUPABASE_ANON_KEY, "Content-Type": "application/json"},
+            timeout=15,
+        )
+        return resp.status_code == 200
+    except Exception as exc:
+        log.warning("Password verification failed for user %s: %s", user_id, exc)
+        return False
+
+
+@app.post("/api/account/clear")
+def clear_account_data(
+    payload: AccountClearRequest,
+    request: Request,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+):
+    if payload.scope not in ("keys", "data", "all"):
+        raise HTTPException(status_code=400, detail="Invalid scope. Use 'keys', 'data', or 'all'.")
+    _check_auth_limit(user_id)
+
+    if not _verify_account_password(user_id, _email_from_request(request), payload.password):
+        raise HTTPException(status_code=403, detail="Password verification failed. Enter the correct account password.")
+
+    stats: Dict[str, Any] = {"applications": 0, "resumes": 0, "settings": False, "profile": False}
+
+    if payload.scope in ("data", "all"):
+        stats["applications"] = db_session.query(db.Application).filter_by(user_id=user_id).delete()
+        stats["resumes"] = db_session.query(db.Resume).filter_by(user_id=user_id).delete()
+        profile = db_session.query(db.Profile).filter_by(user_id=user_id).first()
+        if profile:
+            profile.resume_text = ""
+            profile.parsed_profile = {}
+            stats["profile"] = True
+
+    if payload.scope in ("keys", "all"):
+        row = _get_or_create_settings(db_session, user_id)
+        row.gemini_keys_enc = "[]"
+        row.nim_keys_enc = "[]"
+        row.gemini_models = DEFAULT_GEMINI_MODELS
+        row.nim_models = DEFAULT_NIM_MODELS
+        row.nim_base_url = "https://integrate.api.nvidia.com/v1"
+        row.ollama_enabled = False
+        row.ollama_base_url = "http://localhost:11434"
+        row.ollama_model = "llama3"
+        row.active_provider = "gemini"
+        row.forbidden_phrases = DEFAULT_FORBIDDEN_PHRASES
+        row.tone_settings = DEFAULT_TONE
+        stats["settings"] = True
+
+    db_session.commit()
+    return {"status": "success", "message": "Account data cleared.", "stats": stats}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
