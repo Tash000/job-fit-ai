@@ -1,5 +1,7 @@
 """Tests for per-account limits, duplicate detection, resume library, and account clearing."""
 
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -185,6 +187,38 @@ def test_resume_delete_frees_a_slot(client: TestClient, monkeypatch):
     r_id = client.get("/api/resumes", headers=auth("alice")).json()["resumes"][0]["id"]
     client.delete(f"/api/resumes/{r_id}", headers=auth("alice"))
     assert client.post("/api/resumes", headers=auth("alice"), json={"name": "Other", "resume_text": "t"}).status_code == 200
+
+
+# ── Application timestamps (created / analyzed / applied) ────────────────────
+
+def test_application_timestamps(client: TestClient):
+    import main
+
+    app_id = _mk_app(client)
+    listed = client.get("/api/applications", headers=auth("alice")).json()[0]
+    assert listed["created_at"]
+    assert listed["analyzed_at"] is None
+    assert listed["applied_date"] is None
+
+    # Marking the job as applied stamps the applied date.
+    client.patch(f"/api/applications/{app_id}", headers=auth("alice"), json={"applied": True})
+    listed = client.get("/api/applications", headers=auth("alice")).json()[0]
+    assert listed["applied_date"]
+
+    # Simulate a completed analysis (the real analyze endpoint needs an LLM):
+    # the summary/detail must expose analyzed_at once set.
+    session = main.db.SessionLocal()
+    try:
+        row = session.query(main.db.Application).filter_by(id=app_id).first()
+        row.analyzed_at = datetime.utcnow()
+        session.commit()
+    finally:
+        session.close()
+
+    detail = client.get(f"/api/applications/{app_id}", headers=auth("alice")).json()
+    assert detail["analyzed_at"]
+    listed = client.get("/api/applications", headers=auth("alice")).json()[0]
+    assert listed["analyzed_at"]
 
 
 # ── Account clearing ──────────────────────────────────────────────────────────
