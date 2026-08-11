@@ -40,6 +40,7 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
   if (apps === null) return <LoadingBlock label="Loading your dashboard…" />
 
   const analyzed = apps.filter(a => a.match_score > 0)
+  const applied = apps.filter(a => a.applied)
   const avgMatch = analyzed.length
     ? Math.round(analyzed.reduce((s, a) => s + a.match_score, 0) / analyzed.length)
     : 0
@@ -56,8 +57,8 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
   const stats = [
     { label: 'Applications', value: apps.length, icon: BriefcaseIcon, tint: 'blue' },
     { label: 'Analyzed', value: analyzed.length, icon: ZapIcon, tint: 'teal' },
+    { label: 'Applied', value: applied.length, icon: TargetIcon, tint: 'green' },
     { label: 'Avg. match', value: avgMatch ? `${avgMatch}%` : '—', icon: TrendingUpIcon, tint: 'purple' },
-    { label: 'Best match', value: best ? `${best.match_score}%` : '—', icon: TargetIcon, tint: 'green' },
   ]
 
   return (
