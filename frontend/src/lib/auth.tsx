@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session } from '@supabase/supabase-js'
 import { LockIcon, MailIcon, ShieldCheckIcon } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './supabase'
-import { setCachedToken } from './token'
+import { clearLastActive, getLastActive, setCachedToken, SESSION_IDLE_MS, touchLastActive } from './token'
 
 // ── Context ──────────────────────────────────────────────────────────────────
 
@@ -38,16 +38,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data }) => {
+    const sb = supabase
+
+    // If the user was inactive for longer than SESSION_IDLE_MS, expire the
+    // stored session BEFORE restoring it — so opening the site after a long
+    // gap shows the landing page instead of jumping straight into the app.
+    const stale = getLastActive() > 0 && Date.now() - getLastActive() > SESSION_IDLE_MS
+    const restore = async () => {
+      if (stale) {
+        await sb.auth.signOut()
+        clearLastActive()
+      }
+      const { data } = await sb.auth.getSession()
       setSession(data.session)
       setCachedToken(data.session?.access_token ?? null)
+      if (data.session) touchLastActive()
       setLoading(false)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    }
+    void restore()
+
+    // Activity listeners — any interaction refreshes the idle timer. pointermove
+    // fires constantly, so it is throttled to avoid a localStorage write per event.
+    const activityEvents = ['pointerdown', 'keydown', 'pointermove', 'scroll', 'touchstart'] as const
+    let lastTouch = 0
+    const onActivity = () => {
+      const now = Date.now()
+      if (now - lastTouch < 30_000) return
+      lastTouch = now
+      touchLastActive()
+    }
+    activityEvents.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }))
+
+    // Watchdog: an open but idle tab signs out after SESSION_IDLE_MS without
+    // activity. Guarded by lastActive > 0 so visitors on the landing page
+    // (no session yet) are never affected.
+    const watchdog = window.setInterval(() => {
+      const last = getLastActive()
+      if (last > 0 && Date.now() - last > SESSION_IDLE_MS) {
+        void sb.auth.signOut()
+        clearLastActive()
+      }
+    }, 60_000)
+
+    const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setCachedToken(s?.access_token ?? null)
+      if (s) touchLastActive()
+      else clearLastActive()
     })
-    return () => sub.subscription.unsubscribe()
+
+    return () => {
+      activityEvents.forEach(ev => window.removeEventListener(ev, onActivity))
+      window.clearInterval(watchdog)
+      sub.subscription.unsubscribe()
+    }
   }, [])
 
   async function signIn(email: string, password: string) {
