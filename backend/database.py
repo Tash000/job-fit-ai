@@ -80,6 +80,8 @@ def _migrate() -> None:
     _add_column("applications", "applied_date", "VARCHAR(16)")
     _add_column("applications", "follow_up", "BOOLEAN NOT NULL DEFAULT {default}")
     _add_column("applications", "bookmarked", "BOOLEAN NOT NULL DEFAULT {default}")
+    # When the job was last analyzed (shown to the user as a timestamp).
+    _add_column("applications", "analyzed_at", "TIMESTAMP")
     # Friendly nickname + admin email whitelist.
     _add_column("profiles", "display_name", "VARCHAR(80)")
     _add_column("user_settings", "admin_emails", "JSON")
@@ -127,6 +129,7 @@ class Application(Base):
     applied_date = Column(String(16), default=None)  # ISO date (YYYY-MM-DD)
     follow_up = Column(Boolean, default=False)
     bookmarked = Column(Boolean, default=False)
+    analyzed_at = Column(DateTime, default=None)    # last time the job was analyzed
 
     details = Column(JSON, default=None)            # job analysis, suitability, research matcher
     resume_suggestions = Column(JSON, default=None)  # ATS scan results
