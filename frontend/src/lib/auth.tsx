@@ -58,7 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(email: string, password: string) {
     if (!supabase) return { error: 'Authentication is not configured on this deployment.' }
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      // Return to the app after clicking the confirmation link so the session
+      // tokens in the redirect URL are picked up and the user lands in the dashboard.
+      options: {
+        emailRedirectTo: import.meta.env.VITE_SITE_URL ?? window.location.origin,
+      },
+    })
     if (error) return { error: error.message }
     // With email confirmation enabled, no session is returned until the user
     // confirms — surface that instead of silently doing nothing.
