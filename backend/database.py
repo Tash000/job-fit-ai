@@ -83,6 +83,9 @@ def _migrate() -> None:
     # Friendly nickname + admin email whitelist.
     _add_column("profiles", "display_name", "VARCHAR(80)")
     _add_column("user_settings", "admin_emails", "JSON")
+    # Per-user limit overrides (None → app default; set by the admin console).
+    _add_column("user_settings", "analysis_limit", "INTEGER")
+    _add_column("user_settings", "resume_limit", "INTEGER")
 
 
 def init_db() -> None:
@@ -178,7 +181,13 @@ class UserSettings(Base):
     forbidden_phrases = Column(JSON, default=list)
     tone_settings = Column(JSON, default=dict)
     # Emails exempt from rate limits and per-account storage caps ("admins").
+    # Managed exclusively by the admin console — never editable by the user
+    # themselves (closes the self-grant loophole).
     admin_emails = Column(JSON, default=list)
+    # Per-user limit overrides set by the admin console (None → app default).
+    # Admins themselves always bypass every cap regardless of these values.
+    analysis_limit = Column(Integer, default=None)
+    resume_limit = Column(Integer, default=None)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -189,6 +198,34 @@ class CompanyResearch(Base):
     user_id = Column(String(64), index=True, nullable=False)
     company = Column(String(255), nullable=False)
     researched_info = Column(JSON, default=dict)
+
+
+class User(Base):
+    """Directory of known users, fed by every authenticated request.
+
+    Gives the admin console a stable place to list users and their emails
+    (the email comes from the caller's verified JWT, or the demo placeholder
+    in local demo mode).
+    """
+
+    __tablename__ = "users"
+
+    id = Column(String(64), primary_key=True)  # Supabase user id
+    email = Column(String(255), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_seen = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ActivityLog(Base):
+    """Lightweight audit trail for the admin console (who did what, when)."""
+
+    __tablename__ = "activity_log"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(64), index=True, nullable=False)
+    action = Column(String(32), nullable=False)  # app_create / analyze / plan / generate / resume_add …
+    detail = Column(String(255), default="")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 # ── Defaults ──────────────────────────────────────────────────────────────────

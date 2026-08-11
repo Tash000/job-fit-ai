@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   LayoutDashboardIcon, BriefcaseIcon, UserIcon, SettingsIcon,
-  LogOutIcon, SunIcon, MoonIcon,
+  LogOutIcon, SunIcon, MoonIcon, ShieldCheckIcon,
 } from 'lucide-react'
 import './index.css'
 import { useAuth } from './lib/auth'
@@ -17,6 +17,7 @@ import { DashboardView } from './pages/Dashboard'
 import { ApplicationsView } from './pages/Applications'
 import { ProfileView } from './pages/Profile'
 import { SettingsView } from './pages/Settings'
+import { AdminConsole } from './pages/admin/AdminConsole'
 
 type View = 'dashboard' | 'apps' | 'profile' | 'settings'
 
@@ -27,18 +28,62 @@ const VIEW_META: Record<View, { label: string; short: string; icon: typeof Layou
   settings:  { label: 'Settings', short: 'Settings', icon: SettingsIcon, hint: 'Providers, models, appearance' },
 }
 
+/** URL path ↔ view mapping for the user-mode pages. */
+const VIEW_PATHS: Record<View, string> = {
+  dashboard: '/',
+  apps: '/applications',
+  profile: '/profile',
+  settings: '/settings',
+}
+const PATH_VIEW: Record<string, View> = {
+  '/': 'dashboard',
+  '/applications': 'apps',
+  '/profile': 'profile',
+  '/settings': 'settings',
+}
+
+function currentPath() {
+  return window.location.pathname
+}
+
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const { resolved: theme, toggleTheme } = useAppearance()
-  const [nav, setNav] = useState<View>('dashboard')
+  const [nav, setNav] = useState<View>(() => PATH_VIEW[currentPath()] ?? 'dashboard')
+  const [path, setPath] = useState(currentPath)
   const [toast, setToast] = useState<{ msg: string; type: string } | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [focusApp, setFocusApp] = useState<number | null>(null)
   const [newAppToken, setNewAppToken] = useState(0)
   const [pasteToken, setPasteToken] = useState(0)
 
   const notify = useCallback((msg: string, type: 'info' | 'success' | 'error' = 'info') => setToast({ msg, type }), [])
   const closeToast = useCallback(() => setToast(null), [])
+
+  /** Lightweight client-side router: updates the URL and re-renders. */
+  const navigate = useCallback((to: string) => {
+    if (currentPath() !== to) window.history.pushState({}, '', to)
+    setPath(currentPath())
+    window.scrollTo(0, 0)
+  }, [])
+
+  // Back/forward buttons update the view.
+  useEffect(() => {
+    const onPop = () => { setPath(currentPath()); window.scrollTo(0, 0) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  // Keep the URL in sync with the user-mode view (and restore nav when coming
+  // back from the admin console).
+  useEffect(() => {
+    if (path.startsWith('/admin')) return
+    const target = VIEW_PATHS[nav]
+    if (currentPath() !== target) window.history.pushState({}, '', target)
+    const mapped = PATH_VIEW[currentPath()]
+    if (mapped && mapped !== nav) setNav(mapped)
+  }, [nav, path])
 
   // If the session expires server-side (401), log out and show the landing page.
   useEffect(() => {
@@ -53,12 +98,14 @@ export default function App() {
   useEffect(() => {
     if (!userId) {
       setSettings(null)
+      setSettingsLoaded(false)
       return
     }
+    setSettingsLoaded(false)
     fetch(`${API}/api/settings`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d) setSettings(d) })
-      .catch(() => {})
+      .then(d => { setSettings(d); setSettingsLoaded(true) })
+      .catch(() => { setSettingsLoaded(true) })
   }, [userId])
 
   if (loading) {
@@ -71,6 +118,45 @@ export default function App() {
 
   // ── Public: landing page (the install prompt is available to visitors too) ──
   if (!user) return <LandingPage />
+
+  const isAdminPath = path.startsWith('/admin')
+  const isAdmin = settings?.is_admin === true
+
+  // ── Admin console mode (/admin/*) — admins only ──
+  if (isAdminPath) {
+    if (!settingsLoaded) {
+      return (
+        <div className="app-shell">
+          <div className="loading-overlay"><div className="spinner spinner-lg" /><span>Checking access…</span></div>
+        </div>
+      )
+    }
+    if (!isAdmin) {
+      return (
+        <div className="app-shell admin-denied">
+          <div className="card fade-in" style={{ maxWidth: 420, margin: 'auto', textAlign: 'center', padding: 32 }}>
+            <ShieldCheckIcon size={36} style={{ color: 'var(--danger)', marginBottom: 12 }} />
+            <h3>Admin access required</h3>
+            <p className="text-sm text-secondary" style={{ margin: '8px 0 20px' }}>
+              This area is reserved for account administrators. You don't have admin rights on this account.
+            </p>
+            <button className="btn btn-primary" onClick={() => navigate('/')}>Back to the app</button>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <AdminConsole
+        path={path}
+        navigate={navigate}
+        user={user}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        signOut={signOut}
+        notify={notify}
+      />
+    )
+  }
 
   const providerLabel = settings?.active_provider ?? 'gemini'
   const providerActive = isProviderActive(settings)
@@ -105,6 +191,17 @@ export default function App() {
               </button>
             )
           })}
+          {/* Admin console mode switch — visible to admins only */}
+          {isAdmin && (
+            <button
+              className="side-nav-btn admin-mode-btn"
+              onClick={() => navigate('/admin/dashboard')}
+              title="Admin Console"
+            >
+              <ShieldCheckIcon size={17} />
+              <span>Admin Console</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -196,6 +293,16 @@ export default function App() {
             </button>
           )
         })}
+        {isAdmin && (
+          <button
+            className="mobile-nav-btn admin-mode-btn"
+            onClick={() => navigate('/admin/dashboard')}
+            aria-label="Admin Console"
+          >
+            <ShieldCheckIcon size={18} />
+            <span>Admin</span>
+          </button>
+        )}
       </nav>
 
       <InstallPrompt />

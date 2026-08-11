@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import jwt as pyjwt
@@ -20,9 +20,10 @@ import requests as _requests
 from cryptography.fernet import InvalidToken
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import config
@@ -157,7 +158,12 @@ def _is_admin_user(request: Request, user_id: str, db_session: Session) -> bool:
     ``ADMIN_EMAILS`` env or the user's own ``settings.admin_emails``).
 
     Admins bypass rate limits and per-account storage caps.
+
+    In demo mode (single-user local dev) the owner is always an admin so the
+    admin console is testable out of the box.
     """
+    if config.DEMO_MODE:
+        return True
     email = _email_from_request(request)
     if not email:
         return False
@@ -187,6 +193,59 @@ def _check_auth_limit(request: Request, user_id: str, db_session: Session) -> No
         return
     if not auth_limiter.allow(user_id):
         raise HTTPException(status_code=429, detail="Too many attempts. Please wait a moment.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Admin console: user directory, visit recording, activity audit trail
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _record_visit(db_session: Session, user_id: str, email: str) -> None:
+    """Upsert the users directory (email + last_seen) used by the admin console."""
+    now = datetime.utcnow()
+    row = db_session.query(db.User).filter_by(id=user_id).first()
+    if row is None:
+        db_session.add(db.User(id=user_id, email=email or "", created_at=now, last_seen=now))
+        db_session.commit()
+        return
+    if email and row.email != email:
+        row.email = email
+    if row.last_seen is None or (now - row.last_seen).total_seconds() > 300:
+        row.last_seen = now
+        db_session.commit()
+
+
+def authed_user(
+    request: Request,
+    user_id: str = Depends(current_user_id),
+    db_session: Session = Depends(db.get_db),
+) -> str:
+    """Authenticated-user dependency that also records the visit for analytics.
+
+    Used everywhere ``current_user_id`` used to be, so the users directory and
+    last-seen data stay fresh without any extra client work.
+    """
+    email = _email_from_request(request)
+    if config.DEMO_MODE and not email:
+        email = "demo@local"
+    _record_visit(db_session, user_id, email)
+    return user_id
+
+
+def _log_activity(db_session: Session, user_id: str, action: str, detail: str = "") -> None:
+    """Append a row to the audit trail shown in the admin console."""
+    db_session.add(db.ActivityLog(user_id=user_id, action=action, detail=(detail or "")[:255]))
+    db_session.commit()
+
+
+def _require_admin(
+    request: Request,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+) -> str:
+    """Dependency guarding every /api/admin/* endpoint."""
+    if not _is_admin_user(request, user_id, db_session):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user_id
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -501,9 +560,15 @@ def _normalize_profile(parsed: dict) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.get("/api/settings")
-def get_settings(user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def get_settings(request: Request, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_or_create_settings(db_session, user_id)
-    return settings_to_public(row)
+    data = settings_to_public(row)
+    is_admin = _is_admin_user(request, user_id, db_session)
+    data["is_admin"] = is_admin
+    if not is_admin:
+        # Don't leak the admin whitelist to regular users.
+        data.pop("admin_emails", None)
+    return data
 
 
 @app.post("/api/settings")
@@ -511,11 +576,16 @@ def get_settings(user_id: str = Depends(current_user_id), db_session: Session = 
 def update_settings(
     payload: SettingsUpdate,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     _check_auth_limit(request, user_id, db_session)
     row = _get_or_create_settings(db_session, user_id)
+
+    # Admin email whitelist is managed ONLY through the admin console. Rejecting
+    # it here closes the self-grant loophole (a user adding their own email).
+    if payload.admin_emails is not None and not _is_admin_user(request, user_id, db_session):
+        raise HTTPException(status_code=403, detail="Only admins can manage admin emails.")
 
     updates = {}
     if payload.gemini_models is not None:
@@ -555,7 +625,13 @@ def update_settings(
     _apply_key_edits(db_session, row, payload)
     db_session.commit()
     db_session.refresh(row)
-    return {"status": "success", "message": "Settings updated", "settings": settings_to_public(row)}
+    data = settings_to_public(row)
+    is_admin = _is_admin_user(request, user_id, db_session)
+    data["is_admin"] = is_admin
+    if not is_admin:
+        # Don't leak the admin whitelist to regular users.
+        data.pop("admin_emails", None)
+    return {"status": "success", "message": "Settings updated", "settings": data}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -563,7 +639,7 @@ def update_settings(
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.get("/api/profile")
-def get_profile(user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def get_profile(user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_or_create_profile(db_session, user_id)
     profile = row.parsed_profile or {}
     for key in EMPTY_PROFILE:
@@ -575,7 +651,7 @@ def get_profile(user_id: str = Depends(current_user_id), db_session: Session = D
 @app.patch("/api/profile")
 def update_profile(
     payload: ProfileUpdate,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_or_create_profile(db_session, user_id)
@@ -603,7 +679,7 @@ def _save_profile(db_session: Session, user_id: str, resume_text: str, parsed_pr
 async def upload_resume(
     request: Request,
     file: UploadFile = File(...),
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     """Upload a PDF resume; AI parses it into structured fields (user-scoped)."""
@@ -627,7 +703,7 @@ async def upload_resume(
 def parse_resume_text(
     payload: dict,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     raw_text = (payload.get("resume_text") or "").strip()
@@ -645,7 +721,7 @@ def parse_resume_text(
 def extract_job_from_text(
     payload: JobExtractRequest,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     if not payload.raw_text.strip():
@@ -661,7 +737,7 @@ def extract_job_from_text(
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.get("/api/applications")
-def list_applications(user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def list_applications(user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     rows = (
         db_session.query(db.Application)
         .filter_by(user_id=user_id)
@@ -675,7 +751,7 @@ def list_applications(user_id: str = Depends(current_user_id), db_session: Sessi
 def create_application(
     payload: ApplicationCreate,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     # Duplicate guard: same company + same (near-identical) job description.
@@ -685,9 +761,14 @@ def create_application(
     if dup:
         raise _duplicate_error(dup)
 
-    # Per-account storage limit: max MAX_ANALYSES_PER_USER analyses (admins exempt).
+    # Per-account storage limit: max analyses (admins exempt). The cap is the
+    # per-user override when set, otherwise the platform default (500).
+    is_admin = _is_admin_user(request, user_id, db_session)
     count = db_session.query(db.Application).filter_by(user_id=user_id).count()
-    if not _is_admin_user(request, user_id, db_session) and count >= MAX_ANALYSES_PER_USER:
+    cap = MAX_ANALYSES_PER_USER
+    if not is_admin:
+        cap = _get_or_create_settings(db_session, user_id).analysis_limit or MAX_ANALYSES_PER_USER
+    if not is_admin and count >= cap:
         oldest = (
             db_session.query(db.Application)
             .filter_by(user_id=user_id)
@@ -698,9 +779,9 @@ def create_application(
             status_code=409,
             detail={
                 "reason": "limit",
-                "message": f"Storage limit reached — this account can hold {MAX_ANALYSES_PER_USER} job analyses. Delete the oldest one to add a new job.",
+                "message": f"Storage limit reached — this account can hold {cap} job analyses. Delete the oldest one to add a new job.",
                 "count": count,
-                "max": MAX_ANALYSES_PER_USER,
+                "max": cap,
                 "oldest": {
                     "id": oldest.id,
                     "company": oldest.company,
@@ -723,11 +804,12 @@ def create_application(
     db_session.add(row)
     db_session.commit()
     db_session.refresh(row)
+    _log_activity(db_session, user_id, "app_create", f"{row.company} — {row.position}")
     return {"status": "success", "id": row.id}
 
 
 @app.delete("/api/applications/{app_id}")
-def delete_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def delete_application(app_id: int, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
     db_session.delete(row)
     db_session.commit()
@@ -747,7 +829,7 @@ class ApplicationFlags(BaseModel):
 def update_application_flags(
     app_id: int,
     payload: ApplicationFlags,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_application(db_session, user_id, app_id)
@@ -767,7 +849,7 @@ def update_application_flags(
 
 
 @app.get("/api/applications/{app_id}")
-def get_application(app_id: int, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def get_application(app_id: int, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
     return _app_detail(row)
 
@@ -788,7 +870,7 @@ _SEED_PROFESSOR_PAPERS = [
 
 
 @app.post("/api/applications/{app_id}/analyze")
-def analyze_application(app_id: int, request: Request, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def analyze_application(app_id: int, request: Request, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
 
     # If this application's description matches another saved one for the same
@@ -835,6 +917,7 @@ def analyze_application(app_id: int, request: Request, user_id: str = Depends(cu
     row.match_score = int(overall_match)
     row.status = "Analyzed"
     db_session.commit()
+    _log_activity(db_session, user_id, "analyze", f"{row.company} — {row.position} ({int(overall_match)}%)")
     return {"status": "success", "match_score": overall_match}
 
 
@@ -843,7 +926,7 @@ def plan_application(
     app_id: int,
     request: Request,
     payload: Optional[ApplicationPlanRequest] = None,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_application(db_session, user_id, app_id)
@@ -860,6 +943,7 @@ def plan_application(
     )
     row.cover_letter_plan = plan
     db_session.commit()
+    _log_activity(db_session, user_id, "plan", f"{row.company} — {row.position}")
     return {"status": "success", "plan": plan}
 
 
@@ -868,7 +952,7 @@ def generate_application_materials(
     app_id: int,
     payload: ApplicationGenerateRequest,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_application(db_session, user_id, app_id)
@@ -895,11 +979,12 @@ def generate_application_materials(
     row.cover_letter_plan = payload.plan
     row.status = "Completed"
     db_session.commit()
+    _log_activity(db_session, user_id, "generate", f"{row.company} — {row.position}")
     return {"status": "success"}
 
 
 @app.get("/api/applications/{app_id}/export/{export_format}")
-def export_application_letter(app_id: int, export_format: str, user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def export_application_letter(app_id: int, export_format: str, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
     if not row.cover_letter:
         raise HTTPException(status_code=404, detail="Cover letter not found or not generated yet")
@@ -967,7 +1052,7 @@ def refine_application_letter(
     app_id: int,
     payload: CoverLetterRefineRequest,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_application(db_session, user_id, app_id)
@@ -992,6 +1077,7 @@ def refine_application_letter(
     row.audit_trail = results.get("auditTrail", [])
     row.feedback = results.get("feedback", {})
     db_session.commit()
+    _log_activity(db_session, user_id, "refine", f"{row.company} — {row.position}")
 
     return {
         "status": "success",
@@ -1018,32 +1104,37 @@ class ResumeUpdate(BaseModel):
 
 
 @app.get("/api/resumes")
-def list_resumes(user_id: str = Depends(current_user_id), db_session: Session = Depends(db.get_db)):
+def list_resumes(user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     rows = (
         db_session.query(db.Resume)
         .filter_by(user_id=user_id)
         .order_by(db.Resume.created_at.desc())
         .all()
     )
-    return {"resumes": [_resume_summary(r) for r in rows], "max": MAX_RESUMES_PER_USER}
+    cap = _get_or_create_settings(db_session, user_id).resume_limit or MAX_RESUMES_PER_USER
+    return {"resumes": [_resume_summary(r) for r in rows], "max": cap}
 
 
 @app.post("/api/resumes")
 def create_resume(
     payload: ResumeCreate,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
+    is_admin = _is_admin_user(request, user_id, db_session)
     count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
-    if not _is_admin_user(request, user_id, db_session) and count >= MAX_RESUMES_PER_USER:
+    cap = MAX_RESUMES_PER_USER
+    if not is_admin:
+        cap = _get_or_create_settings(db_session, user_id).resume_limit or MAX_RESUMES_PER_USER
+    if not is_admin and count >= cap:
         raise HTTPException(
             status_code=409,
             detail={
                 "reason": "resume_limit",
-                "message": f"Resume library is full ({MAX_RESUMES_PER_USER} max). Delete or rename an existing resume first.",
+                "message": f"Resume library is full ({cap} max). Delete or rename an existing resume first.",
                 "count": count,
-                "max": MAX_RESUMES_PER_USER,
+                "max": cap,
             },
         )
     name = _validate_resume_name(payload.name)
@@ -1056,6 +1147,7 @@ def create_resume(
     db_session.add(row)
     db_session.commit()
     db_session.refresh(row)
+    _log_activity(db_session, user_id, "resume_add", name)
     return {"status": "success", "resume": _resume_summary(row)}
 
 
@@ -1063,19 +1155,23 @@ def create_resume(
 async def upload_resume_pdf(
     request: Request,
     file: UploadFile = File(...),
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     """Upload a PDF into the resume library (max 5), parse it, and make it active."""
+    is_admin = _is_admin_user(request, user_id, db_session)
     count = db_session.query(db.Resume).filter_by(user_id=user_id).count()
-    if not _is_admin_user(request, user_id, db_session) and count >= MAX_RESUMES_PER_USER:
+    cap = MAX_RESUMES_PER_USER
+    if not is_admin:
+        cap = _get_or_create_settings(db_session, user_id).resume_limit or MAX_RESUMES_PER_USER
+    if not is_admin and count >= cap:
         raise HTTPException(
             status_code=409,
             detail={
                 "reason": "resume_limit",
-                "message": f"Resume library is full ({MAX_RESUMES_PER_USER} max). Delete or rename an existing resume first.",
+                "message": f"Resume library is full ({cap} max). Delete or rename an existing resume first.",
                 "count": count,
-                "max": MAX_RESUMES_PER_USER,
+                "max": cap,
             },
         )
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -1127,7 +1223,7 @@ async def upload_resume_pdf(
 def update_resume(
     resume_id: int,
     payload: ResumeUpdate,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_resume(db_session, user_id, resume_id)
@@ -1145,7 +1241,7 @@ def update_resume(
 @app.delete("/api/resumes/{resume_id}")
 def delete_resume(
     resume_id: int,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_resume(db_session, user_id, resume_id)
@@ -1157,7 +1253,7 @@ def delete_resume(
 @app.post("/api/resumes/{resume_id}/activate")
 def activate_resume(
     resume_id: int,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     row = _get_owned_resume(db_session, user_id, resume_id)
@@ -1220,7 +1316,7 @@ def _verify_account_password(user_id: str, email: str, password: str) -> bool:
 def clear_account_data(
     payload: AccountClearRequest,
     request: Request,
-    user_id: str = Depends(current_user_id),
+    user_id: str = Depends(authed_user),
     db_session: Session = Depends(db.get_db),
 ):
     if payload.scope not in ("keys", "data", "all"):
@@ -1262,6 +1358,286 @@ def clear_account_data(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ADMIN CONSOLE (owner-only: /api/admin/* — every route requires admin access)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/admin/status")
+def admin_status(request: Request, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
+    """Whether the caller may use the admin console (drives the UI switch)."""
+    email = _email_from_request(request)
+    if config.DEMO_MODE and not email:
+        email = "demo@local"
+    return {"is_admin": _is_admin_user(request, user_id, db_session), "email": email}
+
+
+@app.get("/api/admin/overview")
+def admin_overview(user_id: str = Depends(_require_admin), db_session: Session = Depends(db.get_db)):
+    """Aggregate platform usage: users, analyses, resumes, storage, activity."""
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_ago = now - timedelta(days=7)
+
+    analyses_q = db_session.query(db.Application).filter(db.Application.details.isnot(None))
+
+    app_bytes = int(db_session.query(func.sum(func.length(db.Application.description))).scalar() or 0)
+    resume_bytes = int(db_session.query(func.sum(func.length(db.Resume.resume_text))).scalar() or 0)
+    profile_bytes = int(db_session.query(func.sum(func.length(db.Profile.resume_text))).scalar() or 0)
+
+    by_provider = {"gemini": 0, "nim": 0, "ollama": 0}
+    for provider, count in (
+        db_session.query(db.UserSettings.active_provider, func.count())
+        .group_by(db.UserSettings.active_provider)
+        .all()
+    ):
+        by_provider[provider or "gemini"] = count
+
+    avg = db_session.query(func.avg(db.Application.match_score)).filter(db.Application.match_score > 0).scalar()
+
+    return {
+        "totals": {
+            "users": db_session.query(db.User).count(),
+            "applications": db_session.query(db.Application).count(),
+            "analyses": analyses_q.count(),
+            "resumes": db_session.query(db.Resume).count(),
+            "storage_bytes": app_bytes + resume_bytes + profile_bytes,
+        },
+        "today": {
+            "analyses": analyses_q.filter(db.Application.created_at >= today_start).count(),
+            "new_users": db_session.query(db.User).filter(db.User.created_at >= today_start).count(),
+        },
+        "last7d": {
+            "analyses": analyses_q.filter(db.Application.created_at >= week_ago).count(),
+            "active_users": db_session.query(db.User).filter(db.User.last_seen >= week_ago).count(),
+        },
+        "avg_match": round(float(avg), 1) if avg else 0,
+        "by_provider": by_provider,
+        "limits": {
+            "default_analysis": MAX_ANALYSES_PER_USER,
+            "default_resume": MAX_RESUMES_PER_USER,
+        },
+    }
+
+
+@app.get("/api/admin/users")
+def admin_list_users(
+    q: str = "",
+    limit: int = 50,
+    offset: int = 0,
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """Directory of users with usage + limits + admin status (searchable)."""
+    users = db_session.query(db.User).order_by(db.User.created_at.desc()).all()
+
+    app_counts = dict(db_session.query(db.Application.user_id, func.count()).group_by(db.Application.user_id).all())
+    analyses_counts = dict(
+        db_session.query(db.Application.user_id, func.count())
+        .filter(db.Application.details.isnot(None))
+        .group_by(db.Application.user_id)
+        .all()
+    )
+    resume_counts = dict(db_session.query(db.Resume.user_id, func.count()).group_by(db.Resume.user_id).all())
+    app_bytes = dict(
+        db_session.query(db.Application.user_id, func.sum(func.length(db.Application.description)))
+        .group_by(db.Application.user_id)
+        .all()
+    )
+    resume_bytes = dict(
+        db_session.query(db.Resume.user_id, func.sum(func.length(db.Resume.resume_text)))
+        .group_by(db.Resume.user_id)
+        .all()
+    )
+    profiles = {p.user_id: p for p in db_session.query(db.Profile).all()}
+    settings_rows = {s.user_id: s for s in db_session.query(db.UserSettings).all()}
+    env_admins = {e.strip().lower() for e in config.ADMIN_EMAILS}
+
+    query = q.strip().lower()
+    items = []
+    for u in users:
+        email = (u.email or "").lower()
+        display = (profiles.get(u.id).display_name or "") if u.id in profiles else ""
+        if query and query not in email and query not in display.lower():
+            continue
+        srow = settings_rows.get(u.id)
+        is_admin = bool(
+            email in env_admins
+            or (srow and srow.admin_emails and email in {e.strip().lower() for e in srow.admin_emails})
+        )
+        items.append(
+            {
+                "user_id": u.id,
+                "email": email,
+                "display_name": display,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "last_seen": u.last_seen.isoformat() if u.last_seen else None,
+                "applications": int(app_counts.get(u.id) or 0),
+                "analyses": int(analyses_counts.get(u.id) or 0),
+                "resumes": int(resume_counts.get(u.id) or 0),
+                "storage_bytes": int(app_bytes.get(u.id) or 0) + int(resume_bytes.get(u.id) or 0)
+                + (len(profiles[u.id].resume_text or "") if u.id in profiles else 0),
+                "analysis_limit": srow.analysis_limit if srow else None,
+                "resume_limit": srow.resume_limit if srow else None,
+                "is_admin": is_admin,
+            }
+        )
+
+    return {"total": len(items), "users": items[offset : offset + limit]}
+
+
+@app.get("/api/admin/users/{uid}")
+def admin_user_detail(uid: str, user_id: str = Depends(_require_admin), db_session: Session = Depends(db.get_db)):
+    """Per-user detail: profile, usage, limits, and recent applications."""
+    target = db_session.query(db.User).filter_by(id=uid).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    srow = db_session.query(db.UserSettings).filter_by(user_id=uid).first()
+    profile = db_session.query(db.Profile).filter_by(user_id=uid).first()
+    email = (target.email or "").lower()
+    is_admin = bool(
+        email in {e.strip().lower() for e in config.ADMIN_EMAILS}
+        or (srow and srow.admin_emails and email in {e.strip().lower() for e in srow.admin_emails})
+    )
+
+    recent = (
+        db_session.query(db.Application)
+        .filter_by(user_id=uid)
+        .order_by(db.Application.id.desc())
+        .limit(10)
+        .all()
+    )
+    return {
+        "user_id": uid,
+        "email": email,
+        "display_name": (profile.display_name or "") if profile else "",
+        "created_at": target.created_at.isoformat() if target.created_at else None,
+        "last_seen": target.last_seen.isoformat() if target.last_seen else None,
+        "applications": db_session.query(db.Application).filter_by(user_id=uid).count(),
+        "analyses": db_session.query(db.Application).filter(db.Application.user_id == uid, db.Application.details.isnot(None)).count(),
+        "resumes": db_session.query(db.Resume).filter_by(user_id=uid).count(),
+        "analysis_limit": srow.analysis_limit if srow else None,
+        "resume_limit": srow.resume_limit if srow else None,
+        "is_admin": is_admin,
+        "recent_applications": [_app_summary(r) for r in recent],
+    }
+
+
+class AdminUserUpdate(BaseModel):
+    # Per-user limit overrides (null → platform default). Admins always bypass caps.
+    analysis_limit: Optional[int] = None
+    resume_limit: Optional[int] = None
+    # Grant / revoke admin status (writes the user's email into their own whitelist).
+    admin: Optional[bool] = None
+
+
+@app.patch("/api/admin/users/{uid}")
+def admin_update_user(
+    uid: str,
+    payload: AdminUserUpdate,
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """Change a user's limits or admin status (admin console only)."""
+    target = db_session.query(db.User).filter_by(id=uid).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    settings = _get_or_create_settings(db_session, uid)
+
+    if payload.analysis_limit is not None:
+        if payload.analysis_limit < 0 or payload.analysis_limit > 100_000:
+            raise HTTPException(status_code=400, detail="analysis_limit must be between 0 and 100000 (null resets to default)")
+        settings.analysis_limit = payload.analysis_limit or None
+    if payload.resume_limit is not None:
+        if payload.resume_limit < 0 or payload.resume_limit > 100_000:
+            raise HTTPException(status_code=400, detail="resume_limit must be between 0 and 100000 (null resets to default)")
+        settings.resume_limit = payload.resume_limit or None
+    admin_change: Optional[str] = None
+    if payload.admin is not None:
+        email = (target.email or "").strip().lower()
+        if not email:
+            raise HTTPException(status_code=400, detail="User has no email on record — cannot manage admin status.")
+        emails = [e for e in (settings.admin_emails or []) if isinstance(e, str)]
+        if payload.admin:
+            if email not in emails:
+                emails.append(email)
+            admin_change = "granted"
+        else:
+            emails = [e for e in emails if e != email]
+            admin_change = "revoked"
+        settings.admin_emails = emails[:20]
+
+    db_session.commit()
+    _log_activity(
+        db_session,
+        user_id,
+        "admin_update",
+        f"limits a={settings.analysis_limit} r={settings.resume_limit} admin={admin_change or 'unchanged'}",
+    )
+    return {"status": "success"}
+
+
+class AdminClearRequest(BaseModel):
+    scope: str = "all"  # "applications" | "resumes" | "all"
+
+
+@app.post("/api/admin/users/{uid}/clear")
+def admin_clear_user(
+    uid: str,
+    payload: AdminClearRequest,
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """Clear a user's storage (applications / resumes / everything)."""
+    if payload.scope not in ("applications", "resumes", "all"):
+        raise HTTPException(status_code=400, detail="Invalid scope. Use 'applications', 'resumes', or 'all'.")
+    if db_session.query(db.User).filter_by(id=uid).first() is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    stats: Dict[str, Any] = {"applications": 0, "resumes": 0, "profile": False}
+    if payload.scope in ("applications", "all"):
+        stats["applications"] = db_session.query(db.Application).filter_by(user_id=uid).delete()
+    if payload.scope in ("resumes", "all"):
+        stats["resumes"] = db_session.query(db.Resume).filter_by(user_id=uid).delete()
+    if payload.scope == "all":
+        profile = db_session.query(db.Profile).filter_by(user_id=uid).first()
+        if profile:
+            profile.resume_text = ""
+            profile.parsed_profile = {}
+            stats["profile"] = True
+    db_session.commit()
+    _log_activity(db_session, user_id, "admin_clear", f"{uid}: {payload.scope}")
+    return {"status": "success", "stats": stats}
+
+
+@app.get("/api/admin/activity")
+def admin_activity(
+    limit: int = 50,
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """Recent platform activity (audit trail)."""
+    limit = min(max(limit, 1), 200)
+    rows = (
+        db_session.query(db.ActivityLog)
+        .order_by(db.ActivityLog.id.desc())
+        .limit(limit)
+        .all()
+    )
+    emails = {u.id: u.email for u in db_session.query(db.User).all()}
+    return [
+        {
+            "id": r.id,
+            "user_id": r.user_id,
+            "email": emails.get(r.user_id, ""),
+            "action": r.action,
+            "detail": r.detail,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Health check (used by Render's health checks and keep-alive pings)
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -1276,6 +1652,20 @@ def healthz():
 
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
 if os.path.isdir(frontend_dist):
+    # SPA fallback: serve real files when they exist, otherwise index.html so
+    # deep links like /admin/dashboard work on a self-hosted single-process deploy.
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
+        candidate = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        index = os.path.join(frontend_dist, "index.html")
+        if os.path.isfile(index):
+            return FileResponse(index)
+        raise HTTPException(status_code=404)
+
     app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
 else:
     @app.get("/")
