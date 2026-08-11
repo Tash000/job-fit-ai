@@ -180,7 +180,7 @@ class _GeminiBackend:
 
     def __init__(self, api_keys: List[str], models: List[str]):
         self.api_keys = [k for k in api_keys if k.strip()]
-        self.models = models or ["gemini-1.5-flash"]
+        self.models = models or ["gemini-3.5-flash"]
         self._pairs: List[tuple] = [
             (k, m) for k in self.api_keys for m in self.models
         ]
@@ -338,7 +338,7 @@ class CopilotGenerator:
 
         self._gemini = _GeminiBackend(
             api_keys=all_gemini_keys,
-            models=gemini_models or ["gemini-1.5-flash"],
+            models=gemini_models or ["gemini-3.5-flash"],
         )
         self._nim = _NIMBackend(
             api_keys=nim_api_keys or [],
@@ -464,17 +464,51 @@ Return ONLY valid JSON.
             print(f"[analyze_suitability] Parse error: {e}")
         return {"suitability": MOCK_SUITABILITY, "gaps": MOCK_GAPS}
 
-    def plan_cover_letter(self, job_analysis: Dict[str, Any], suitability: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Module 5: Create a structural layout of the cover letter."""
+    def plan_cover_letter(
+        self,
+        job_analysis: Dict[str, Any],
+        suitability: Dict[str, Any],
+        style: str = "industrial",
+    ) -> List[Dict[str, Any]]:
+        """Module 5: Create the structural layout of the cover letter.
+
+        Two letter architectures, following industry templates:
+        - Job letters (Anschreiben / company applications): hook → fit with proof
+          → why this company → logistics & close. One A4 page, 3-4 short paragraphs.
+        - PhD / academic letters (motivation letters): hook → research & publications
+          → why this lab (specific papers) → research vision & close.
+        """
         if not self.client_active:
             return MOCK_CL_PLAN
 
-        prompt = f"""
-Create a 4-paragraph structure for a cover letter tailoring the candidate's strengths to the job.
-Return a JSON list of paragraphs. Each item must have:
-- paragraph: Paragraph number (1-4)
-- topic: Title/Focus of paragraph
-- details: Description of what should be written in this paragraph
+        if style in ("phd", "academic"):
+            structure = """
+Create a ONE-PAGE (~400-500 words) PhD motivation-letter structure for a specific professor/lab.
+Return a JSON list of 4 paragraphs. Each item must have:
+- paragraph: 1-4
+- topic: Focus of the paragraph
+- details: exactly what to write (which profile facts to use, what to reference about the lab)
+
+1. Hook — the exact position/project, the candidate's highest degree (institution + CGPA if present), and a one-line research identity.
+2. Research experience & publications — the thesis and key systems BUILT (specific, with numbers), with papers integrated contextually (venue + what it demonstrated), not listed like a CV.
+3. Why this lab — reference ONE specific paper/project of the professor's group (from job analysis / research context) and bridge it to the candidate's own work; say what they could contribute.
+4. Research vision & close — 1-2 sentence future research direction tied to the lab's agenda, then a short closing.
+"""
+        else:
+            structure = """
+Create a ONE-A4-PAGE (3-4 short paragraphs) job cover letter structure (German Anschreiben conventions, works globally).
+Return a JSON list of 4 paragraphs. Each item must have:
+- paragraph: 1-4
+- topic: Focus of the paragraph
+- details: exactly what to write (which profile facts to use)
+
+1. Hook — the position, where it was advertised (from job analysis), and a one-line current-role summary with a headline metric.
+2. Fit with proof — map 2-3 key requirements from the job to QUANTIFIED achievements from the candidate's experience/projects (numbers, not adjectives).
+3. Why this company — ONE specific, non-generic reason (their product/tech/mission from job analysis) and what the candidate would contribute.
+4. Logistics & close — location/relocation/remote or visa/availability line (use the candidate's address/country), then a short closing.
+"""
+
+        prompt = f"""{structure}
 
 Job Info:
 {json.dumps(job_analysis)}
@@ -510,6 +544,30 @@ Return ONLY valid JSON.
 
         forbidden_list = settings.get("forbidden_phrases", [])
         tone_prefs = settings.get("tone_settings", {})
+        phd_mode = style in ("phd", "academic")
+
+        if phd_mode:
+            format_rules = """
+FORMAT (PhD motivation letter):
+- Exactly ONE page (~400-500 words). Single-spaced, formal correspondence.
+- Start with \"Dear Prof. [Last Name],\" or \"Dear Dr. [Last Name],\" (or \"Dear Admissions Committee,\" if no name is available).
+- Four paragraphs: 1) hook + degree + research identity; 2) research experience with publications integrated contextually;
+  3) why this lab — reference ONE specific recent paper/project of theirs and bridge it to the candidate's work;
+  4) future research vision (1-2 sentences) tied to the lab's agenda, then a closing line.
+- Never generic flattery of rankings/campuses — talk about the research itself.
+- Confident but humble: report what was built and measured; never boast.
+"""
+        else:
+            format_rules = """
+FORMAT (job application letter, one A4 page):
+- 3-4 SHORT paragraphs only. Recruiters spend ~30 seconds — every sentence must earn its place.
+- Start with \"Dear Hiring Team,\" or a named salutation if one is known.
+- Paragraph 1: hook (position + where found + one-line role summary with a headline metric).
+- Paragraph 2: fit with 2-3 QUANTIFIED achievements mapped to the role's key requirements.
+- Paragraph 3: ONE specific reason for this company (their product/tech/mission — never generic praise).
+- Paragraph 4: logistics — location/relocation/remote availability or notice period (use the candidate's address/country), then a closing line.
+- Professional, factual, direct. No hype, humor, casual tone, or empty buzzwords (\"passionate team player\", \"fast learner\" without proof).
+"""
 
         prompt = f"""
 You are an advanced application agent. Write a personalized, tailored cover letter.
@@ -517,13 +575,21 @@ You are an advanced application agent. Write a personalized, tailored cover lett
 CRITICAL CONSTRAINTS (Cover Letter Memory):
 - You MUST NOT use any of these phrases/words (strictly forbidden): {json.dumps(forbidden_list)}
 - Enforce this writing style: {json.dumps(tone_prefs)}
-- Style mode: {style} (e.g. Academic, Industrial, Startup, PhD, Internship)
+- Style mode: {style}
 
 HUMANIZER RULE:
-- Do not use generic enthusiasm. Instead, write about concrete projects, achievements, and statistics.
+- Do not use generic enthusiasm. Write about concrete projects, achievements, and statistics.
 
 TRUTHFULNESS GUARD RULE:
-- Every claim MUST be traceable to the Candidate Profile. Do not invent details.
+- Every claim MUST be traceable to the Candidate Profile (including experience, education, projects, publications, certifications). Do not invent details.
+
+UNIVERSAL RULES:
+- Never repeat the CV line by line — the letter explains the WHY and connects the candidate's highlights to the role/lab.
+- Numbers, not adjectives: \"moved from embedded firmware to deployed LLM apps in one project\" beats \"fast learner\".
+- End the letter body with a short closing paragraph. Do NOT include a signature block or \"Sincerely,\" line — the template adds it.
+- Keep to ONE page. Trim ruthlessly.
+
+{format_rules}
 
 Candidate Profile:
 {json.dumps(profile)}
@@ -535,7 +601,7 @@ Paragraph Layout:
 {json.dumps(plan)}
 
 Return a JSON object containing:
-- coverLetter: The full text of the letter
+- coverLetter: The full text of the letter (salutation + paragraphs + closing paragraph, no signature)
 - auditTrail: A list of objects matching each sentence to its source:
   {{"sentence": "...", "source": "...", "status": "verified"|"unverified"}}
 - feedback: An object with scores (0-10) for:
@@ -620,42 +686,57 @@ Return ONLY valid JSON.
     def parse_resume(self, resume_text: str) -> Dict[str, Any]:
         """
         AI-powered resume parser.
-        Extracts name, email, phone, skills, projects, publications, career_goals
-        from raw resume text. Much more reliable than heuristic parsing.
+        Reads EVERY section of the resume into a structured profile — known
+        sections are mapped to standard fields and any unknown section is kept
+        verbatim in ``additional_sections`` so no data is ever dropped.
         """
         EMPTY_PROFILE = {
-            "name": "", "email": "", "phone": "", "career_goals": "",
-            "skills": [], "projects": [], "publications": []
+            "name": "", "email": "", "phone": "", "address": "", "links": [],
+            "career_goals": "", "skills": [], "experience": [], "education": [],
+            "projects": [], "publications": [], "certifications": [],
+            "achievements": [], "languages": [], "hobbies": [], "declaration": "",
+            "additional_sections": [],
+        }
+        _LIST_KEYS = {
+            "links", "skills", "experience", "education", "projects", "publications",
+            "certifications", "achievements", "languages", "hobbies", "additional_sections",
         }
 
         if not self.client_active:
             return EMPTY_PROFILE
 
         prompt = f"""
-You are an expert resume parser. Extract all structured information from the resume text below.
+You are an expert resume/CV parser. Read EVERY section of the resume and map it into
+a structured JSON object. Never drop any section — if it does not fit one of the
+standard fields, capture it verbatim in additional_sections.
 
 Return a JSON object with EXACTLY these fields:
-- name: Full name (string, only the name, nothing else)
+- name: Full name (string, only the name)
 - email: Email address (string)
 - phone: Phone number (string)
-- career_goals: A 1-2 sentence summary of the candidate's research/career focus based on their work (string)
-- skills: List of technical skills as plain strings (e.g. ["Python", "ROS2", "PyTorch"])
-- projects: List of objects, each with:
-  - title: Project name (string)
-  - description: What the project does and results achieved (string)
-  - technologies: List of technology strings
-- publications: List of objects, each with:
-  - title: Full paper title (string)
-  - authors: Authors string (e.g. "T. Yousi et al.")
-  - journal: Conference or journal name (string)
-  - year: Year as integer
-  - abstract: A 1-2 sentence summary of what the paper is about (string)
+- address: City/country or full address (string)
+- links: List of profile/portfolio URLs, e.g. LinkedIn, GitHub, personal site (list of strings)
+- career_goals: Content of the Objective / Summary / Profile / About section (string)
+- skills: List of technical and soft skills as plain strings (list)
+- experience: List of work/research experience, each: {{"role", "company", "duration", "description"}}
+- education: List of education entries, each: {{"degree", "institution", "duration", "description"}} (include GPA if present)
+- projects: List of objects: {{"title", "technologies": [..], "description"}}
+- publications: List of objects: {{"title", "authors", "journal", "year", "abstract"}}
+- certifications: List of certifications/courses: {{"name", "issuer", "year"}}
+- achievements: List of awards/honours/achievements: {{"title", "year", "description"}}
+- languages: List of languages: {{"language", "proficiency"}} (e.g. "Fluent", "B2", "Native")
+- hobbies: List of hobbies/interests (list of strings)
+- declaration: The declaration statement if present (string)
+- additional_sections: ANY other section found in the resume (e.g. Workshops, Volunteering,
+  Internships, Extracurricular, Patents, Grants, References, Training, Personal Projects,
+  or anything else) as a list of {{"title": section heading, "content": full section text}}
 
 IMPORTANT RULES:
-- name must be ONLY the person's name, not their title or email
-- Extract ALL projects and publications you find
-- If a field is missing, use empty string or empty list
-- Do not add any data not present in the resume
+- Preserve ALL sections. If you cannot map a section to a standard field, put it verbatim in additional_sections.
+- name must be ONLY the person's name.
+- Extract ALL experience, education, projects, publications, certifications, achievements and languages.
+- If a field is missing, use empty string or empty list.
+- Do not invent data that is not in the resume.
 
 RESUME TEXT:
 {resume_text}
@@ -666,10 +747,10 @@ Return ONLY valid JSON. No markdown, no explanation.
             raw = self._generate(prompt)
             if raw:
                 parsed = _parse_json_response(raw)
-                # Validate required keys exist
-                for key in ["name", "email", "phone", "career_goals", "skills", "projects", "publications"]:
+                # Validate required keys exist (list keys default to [], text to "").
+                for key in EMPTY_PROFILE:
                     if key not in parsed:
-                        parsed[key] = [] if key in ["skills", "projects", "publications"] else ""
+                        parsed[key] = [] if key in _LIST_KEYS else ""
                 return parsed
         except Exception as e:
             print(f"[parse_resume] Parse error: {e}")
