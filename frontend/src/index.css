@@ -2533,3 +2533,14 @@ code { font-family: var(--font-mono); }
 }
 
 .admin-activity-row:last-child { border-bottom: none; }
+
+/* Discreet application timestamps (created / last analyzed / applied) */
+.app-timestamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
