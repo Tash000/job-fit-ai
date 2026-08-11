@@ -40,7 +40,7 @@ research lines up with the role — all in one installable app.
 └──────────────────────────┬───────────────────────────────────┘
                            │ HTTPS · Bearer JWT (Supabase Auth)
 ┌──────────────────────────▼───────────────────────────────────┐
-│  FastAPI Backend  (GCP Cloud Run / any ASGI host)            │
+│  FastAPI Backend  (Render / any ASGI host)                   │
 │  ├─ Auth: validates Supabase JWT on every request            │
 │  ├─ Services: parser → ats_optimizer → research_matcher      │
 │  │            → generator (LLM router) → exporter            │
@@ -80,7 +80,7 @@ Open **http://localhost:8000** to use the backend-served build, or **http://loca
 Vitralume is a Progressive Web App — no app store needed.
 
 - **Android / desktop**: open the deployed URL in Chrome/Edge → *Add to Home screen* / *Install* → runs standalone with its own icon.
-- Requires the backend to be reachable over **HTTPS** (PWA install is a secure-context-only feature). Vercel + Cloud Run give you that for free.
+- Requires the backend to be reachable over **HTTPS** (PWA install is a secure-context-only feature). Vercel + Render give you that for free.
 
 ## 🔐 Security Model
 
@@ -113,7 +113,7 @@ Vitralume is a Progressive Web App — no app store needed.
 │   │   └── index.css      # design system (dark theme, responsive)
 │   └── public/            # icons (generated), favicon
 └── docs/
-    ├── DEPLOYMENT.md      # Supabase / Vercel / Cloud Run step-by-step
+    ├── DEPLOYMENT.md      # Supabase / Vercel / Render step-by-step
     └── ARCHITECTURE.md    # design decisions & threat model
 ```
 
