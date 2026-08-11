@@ -87,7 +87,7 @@ export function useAppearance(): Appearance {
       localStorage.setItem(ACCENT_KEY, accent)
       // Keep the browser chrome (e.g. mobile address bar) in sync.
       const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0f172a' : '#f6f7f9')
+      if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0a0f1c' : '#f4f7fc')
     } catch {
       /* ignore storage errors (private mode etc.) */
     }
