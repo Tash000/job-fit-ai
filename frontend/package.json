@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "csp": "node scripts/csp-hashes.mjs",
+    "csp:check": "node scripts/csp-hashes.mjs --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
