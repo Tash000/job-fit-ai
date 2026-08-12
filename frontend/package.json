@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.mjs",
+    "fonts": "node scripts/fetch-fonts.mjs",
     "csp": "node scripts/csp-hashes.mjs",
     "csp:check": "node scripts/csp-hashes.mjs --check"
   },
