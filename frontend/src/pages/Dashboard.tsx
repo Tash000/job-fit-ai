@@ -15,12 +15,13 @@ interface DashboardProps {
   onSmartPaste: () => void
   onGoTo: (view: 'apps' | 'profile' | 'settings') => void
   userName?: string
+  /** Fetched once in App; passed down so the dashboard doesn't refetch it. */
+  settings: Settings | null
 }
 
-export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userName }: DashboardProps) {
+export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userName, settings }: DashboardProps) {
   const [apps, setApps] = useState<AppItem[] | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [settings, setSettings] = useState<Settings | null>(null)
 
   useEffect(() => {
     fetch(`${API}/api/applications`)
@@ -31,10 +32,6 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
       .then(r => r.json())
       .then(d => setProfile(d && d.resume_text !== undefined ? d : null))
       .catch(() => setProfile(null))
-    fetch(`${API}/api/settings`)
-      .then(r => r.json())
-      .then(setSettings)
-      .catch(() => {})
   }, [])
 
   if (apps === null) return <LoadingBlock label="Loading your dashboard…" />

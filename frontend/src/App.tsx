@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import {
   LayoutDashboardIcon, BriefcaseIcon, UserIcon, SettingsIcon,
   LogOutIcon, SunIcon, MoonIcon, ShieldCheckIcon,
@@ -9,15 +9,19 @@ import { useAppearance } from './lib/theme'
 import type { Settings } from './lib/types'
 import { isProviderActive } from './lib/types'
 import { API_BASE as API } from './lib/api'
-import { Toast } from './components/ui'
+import { Toast, LoadingBlock } from './components/ui'
 import { InstallButton } from './components/InstallButton'
 import { InstallPrompt } from './components/InstallPrompt'
+// The landing page is what a signed-out visitor sees first, so it stays in the
+// entry bundle. Everything behind the sign-in gate is split out: it is dead
+// weight for anonymous traffic, and a signed-in user fetches the chunk while
+// the first API calls are still in flight.
 import LandingPage from './pages/Landing'
-import { DashboardView } from './pages/Dashboard'
-import { ApplicationsView } from './pages/Applications'
-import { ProfileView } from './pages/Profile'
-import { SettingsView } from './pages/Settings'
-import { AdminConsole } from './pages/admin/AdminConsole'
+const DashboardView = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.DashboardView })))
+const ApplicationsView = lazy(() => import('./pages/Applications').then(m => ({ default: m.ApplicationsView })))
+const ProfileView = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfileView })))
+const SettingsView = lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsView })))
+const AdminConsole = lazy(() => import('./pages/admin/AdminConsole').then(m => ({ default: m.AdminConsole })))
 
 type View = 'dashboard' | 'apps' | 'profile' | 'settings'
 
@@ -146,15 +150,17 @@ export default function App() {
       )
     }
     return (
-      <AdminConsole
-        path={path}
-        navigate={navigate}
-        user={user}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        signOut={signOut}
-        notify={notify}
-      />
+      <Suspense fallback={<LoadingBlock label="Loading admin console…" />}>
+        <AdminConsole
+          path={path}
+          navigate={navigate}
+          user={user}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          signOut={signOut}
+          notify={notify}
+        />
+      </Suspense>
     )
   }
 
@@ -258,22 +264,25 @@ export default function App() {
         </header>
 
         <main className="main-content fade-in">
-          {nav === 'dashboard' && (
-            <DashboardView
-              onOpenApp={id => goToApps(id)}
-              onNewApp={() => { setFocusApp(null); setNav('apps'); setNewAppToken(t => t + 1) }}
-              onSmartPaste={() => { setFocusApp(null); setNav('apps'); setPasteToken(t => t + 1) }}
-              onGoTo={v => setNav(v)}
-              userName={user.email.split('@')[0]}
-            />
-          )}
-          {nav === 'apps' && (
-            <ApplicationsView notify={notify} focusId={focusApp} newToken={newAppToken} pasteToken={pasteToken} />
-          )}
-          {nav === 'profile' && <ProfileView notify={notify} />}
-          {nav === 'settings' && (
-            <SettingsView notify={notify} onSaved={s => setSettings(s)} />
-          )}
+          <Suspense fallback={<LoadingBlock label={`Loading ${VIEW_META[nav].label.toLowerCase()}…`} />}>
+            {nav === 'dashboard' && (
+              <DashboardView
+                onOpenApp={id => goToApps(id)}
+                onNewApp={() => { setFocusApp(null); setNav('apps'); setNewAppToken(t => t + 1) }}
+                onSmartPaste={() => { setFocusApp(null); setNav('apps'); setPasteToken(t => t + 1) }}
+                onGoTo={v => setNav(v)}
+                userName={user.email.split('@')[0]}
+                settings={settings}
+              />
+            )}
+            {nav === 'apps' && (
+              <ApplicationsView notify={notify} focusId={focusApp} newToken={newAppToken} pasteToken={pasteToken} />
+            )}
+            {nav === 'profile' && <ProfileView notify={notify} />}
+            {nav === 'settings' && (
+              <SettingsView notify={notify} onSaved={s => setSettings(s)} />
+            )}
+          </Suspense>
         </main>
       </div>
 
