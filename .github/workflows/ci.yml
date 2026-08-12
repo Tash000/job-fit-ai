@@ -43,3 +43,8 @@ jobs:
         run: npm run lint
       - name: Typecheck & build
         run: npm run build
+      # Vercel serves the CSP from vercel.json in the repo, not from the build
+      # output, so an edited inline script silently ships a stale sha256 and the
+      # browser blocks it. Must run after the build — it hashes dist/index.html.
+      - name: Verify CSP hashes are current
+        run: npm run csp:check
