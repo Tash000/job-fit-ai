@@ -1,0 +1,26 @@
+# Vitralume
+
+> An AI job application copilot. Vitralume analyses how well your resume fits a
+> job posting, optimises it for ATS keyword screening, matches your background
+> against company research, and drafts cover letters that stay truthful to what
+> is actually in your profile.
+
+Vitralume is a single-page web app served entirely from `/`. Visitors see a
+public landing page; signing in swaps the same URL for a private workspace
+(dashboard, applications, resume profile, settings). There are no separate
+crawlable URLs for the workspace.
+
+## Docs
+
+- [README](https://github.com/Tash000/job-fit-ai#readme): What Vitralume does, how it is built, and how to run it locally.
+- [Contributing guide](https://github.com/Tash000/job-fit-ai/blob/main/CONTRIBUTING.md): Development setup and pull-request conventions.
+- [Security policy](https://github.com/Tash000/job-fit-ai/blob/main/SECURITY.md): How to report a vulnerability.
+- [Code of conduct](https://github.com/Tash000/job-fit-ai/blob/main/CODE_OF_CONDUCT.md): Community expectations.
+
+## App
+
+- [Vitralume](https://vitralume.vercel.app/): Public landing page and entry point to the workspace.
+
+## Optional
+
+- [Source repository](https://github.com/Tash000/job-fit-ai): Full source for the React frontend and FastAPI backend.
