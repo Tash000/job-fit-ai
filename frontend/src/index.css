@@ -1,3 +1,7 @@
+/* Self-hosted @font-face rules. Must stay first — @import is only valid before
+   any other rule. Regenerate with `npm run fonts`. */
+@import './fonts.css';
+
 /* ═══════════════════════════════════════════════════════════════════════
    Vitralume — Design System v2
    Three-layer token architecture (design-system skill):
