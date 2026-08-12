@@ -178,10 +178,13 @@
   --color-primary-active: var(--brand-800);
   --color-primary-foreground: #FFFFFF;
 
-  --color-success: var(--color-green-600);
-  --color-warning: var(--color-yellow-600);
-  --color-error: var(--color-red-600);
-  --color-info: var(--brand-500);
+  /* One step darker than the palette's mid tone: badges and score chips paint
+     these on a 10–12% tinted background, and green-600 / yellow-600 only reach
+     ~3.8:1 and ~3.2:1 there, under the 4.5:1 needed for body-sized text. */
+  --color-success: var(--color-green-700);
+  --color-warning: var(--color-yellow-700);
+  --color-error: var(--color-red-700);
+  --color-info: var(--brand-600);
 
   --color-sidebar: #FFFFFF;
   --color-sidebar-border: var(--color-gray-200);
@@ -615,19 +618,29 @@ code { font-family: var(--font-mono); }
 }
 
 .provider-badge .dot {
+  position: relative;
   width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--success);
   box-shadow: 0 0 6px var(--success);
 }
 
+/* The pulse is a pseudo-element ring animated with transform + opacity so it
+   runs on the compositor. Animating box-shadow (the obvious way to write this)
+   repaints the element every frame and shows up in Lighthouse as a
+   non-composited animation. */
 @keyframes pulseDot {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 45%, transparent); }
-  70%  { box-shadow: 0 0 0 6px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0%   { transform: scale(1); opacity: 0.85; }
+  70%  { transform: scale(3); opacity: 0; }
+  100% { transform: scale(3); opacity: 0; }
 }
 
-.provider-badge:not(.inactive) .dot {
+.provider-badge:not(.inactive) .dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--success) 45%, transparent);
   animation: pulseDot 2.2s ease-out infinite;
 }
 
@@ -782,6 +795,11 @@ code { font-family: var(--font-mono); }
   font-size: var(--badge-font-size);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
+  /* Truncate inside a tight column instead of overflowing onto a sibling. */
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .badge-new        { background: var(--info-bg);    color: var(--info);    border: 1px solid var(--info-border); }
 .badge-analyzed   { background: var(--accent-bg);  color: var(--accent);  border: 1px solid var(--accent-border); }
@@ -929,7 +947,9 @@ code { font-family: var(--font-mono); }
 
 .split-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  /* Was a hard 320px, which squeezed the detail panel on ~900–1100px screens.
+     The list column now gives back space when there isn't enough to go round. */
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -946,10 +966,21 @@ code { font-family: var(--font-mono); }
 /* ═══════════════════════════════════════════════════════════════════════
    Application list
    ═══════════════════════════════════════════════════════════════════════ */
-.app-list { display: flex; flex-direction: column; gap: 10px; }
+/* The list lives in the narrow column of .split-layout, so its rows go narrow
+   while the viewport is still wide — media queries can't see that. Declaring a
+   query container lets the row restack based on the width it actually gets. */
+.app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  container-type: inline-size;
+  container-name: app-list;
+}
 
 .app-list-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "logo info score actions";
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
@@ -971,6 +1002,7 @@ code { font-family: var(--font-mono); }
 }
 
 .app-company-logo {
+  grid-area: logo;
   width: 42px; height: 42px;
   border-radius: var(--radius-md);
   background: var(--color-muted);
@@ -985,7 +1017,59 @@ code { font-family: var(--font-mono); }
   flex-shrink: 0;
 }
 
-.app-info { flex: 1; min-width: 0; }
+/* min-width:0 lets the column shrink; overflow:hidden stops a nowrap badge
+   from spilling out of it and landing on top of the score chip. */
+.app-info { grid-area: info; min-width: 0; overflow: hidden; }
+
+/* Company/badge and status/location rows: wrap rather than push each other out
+   of the column, and let each child shrink instead of forcing an overflow. */
+.app-info-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.app-info-line > * { min-width: 0; }
+.app-info-meta { margin-top: 4px; }
+.app-list-item .score-mini { grid-area: score; }
+.app-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Below ~400px of column width there is no room for one row: drop the score
+   and buttons onto a second line rather than letting them collide. */
+@container app-list (max-width: 400px) {
+  .app-list-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "logo info"
+      "score actions";
+    row-gap: 10px;
+  }
+  .app-list-item .score-mini { justify-self: center; }
+  .app-actions { justify-content: flex-end; }
+}
+
+/* Fallback for browsers without container queries: same restack, keyed to the
+   viewport width at which .split-layout is still a narrow two-column grid. */
+@supports not (container-type: inline-size) {
+  @media (min-width: 901px) and (max-width: 1200px) {
+    .app-list-item {
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "logo info"
+        "score actions";
+      row-gap: 10px;
+    }
+    .app-list-item .score-mini { justify-self: center; }
+    .app-actions { justify-content: flex-end; }
+  }
+}
 .app-company {
   font-weight: var(--font-weight-semibold);
   font-size: 0.9rem;

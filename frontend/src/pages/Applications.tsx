@@ -390,12 +390,12 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken }: Appl
                 >
                   <div className="app-company-logo">{a.company[0]}</div>
                   <div className="app-info">
-                    <div className="flex gap-6 items-center" style={{ flexWrap: 'wrap' }}>
+                    <div className="app-info-line">
                       <span className="app-company">{a.company}</span>
                       {a.applied && <span className={appliedBadge()}>Applied</span>}
                     </div>
                     <div className="app-position">{a.position}</div>
-                    <div className="flex gap-6 items-center" style={{ marginTop: 4, flexWrap: 'wrap' }}>
+                    <div className="app-info-line app-info-meta">
                       <span className={statusBadge(a.status)}>{a.status}</span>
                       {a.location && <span className="text-xs text-muted">{a.location}</span>}
                       <span className="text-xs text-muted">· Added {fmtDay(a.created_at)}</span>
@@ -404,7 +404,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken }: Appl
                   <div className={`score-mini ${scoreClass(a.match_score)}`}>
                     {a.match_score > 0 ? `${a.match_score}` : '–'}
                   </div>
-                  <div className="flex gap-4 items-center">
+                  <div className="app-actions">
                     {/* Discreet follow-up reminder LED */}
                     <button
                       className={`led-btn ${a.follow_up ? 'led-on' : ''}`}
