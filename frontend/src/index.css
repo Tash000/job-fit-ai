@@ -747,6 +747,27 @@ code { font-family: var(--font-mono); }
   border-bottom: 1px solid var(--color-border);
 }
 
+/* Brand link in the topbar — visible only on mobile, where the sidebar
+   (which carries the logo on desktop) is hidden. Clicking it goes home. */
+.topbar-logo {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+.topbar-logo .logo-dot {
+  width: 11px; height: 11px;
+  background: var(--brand-600);
+  border-radius: 3px;
+}
+
 .topbar-title {
   display: flex;
   align-items: center;
@@ -2353,6 +2374,7 @@ code { font-family: var(--font-mono); }
 /* Tablet / phone: sidebar becomes a bottom tab bar. */
 @media (max-width: 900px) {
   .sidebar { display: none; }
+  .topbar-logo { display: inline-flex; }
   .app-main { margin-left: 0; width: 100%; }
   .main-content {
     padding: var(--space-4);
@@ -2686,6 +2708,19 @@ code { font-family: var(--font-mono); }
   padding: 4px 8px 14px;
   border-bottom: 1px solid var(--color-border);
 }
+
+/* The brand doubles as a home button — keep its look while being clickable. */
+.admin-brand-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  border-radius: var(--radius-sm);
+  transition: background var(--ease);
+}
+.admin-brand-btn:hover { background: var(--bg-hover); }
 
 .admin-brand-icon {
   width: 30px;

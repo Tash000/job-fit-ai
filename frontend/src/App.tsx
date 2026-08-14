@@ -287,6 +287,12 @@ export default function App() {
       {/* ── Main column ── */}
       <div className="app-main">
         <header className="topbar">
+          {/* Mobile home button — the sidebar (with its logo) is hidden below
+              900px, so the topbar carries the brand link to the dashboard. */}
+          <button className="topbar-logo" onClick={() => navigate('/')} aria-label="Go to dashboard">
+            <span className="logo-dot" />
+            <span>Vitralume</span>
+          </button>
           <div className="topbar-title">
             <meta.icon size={17} color="var(--accent)" />
             <div>

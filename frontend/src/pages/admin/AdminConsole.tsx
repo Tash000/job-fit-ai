@@ -41,13 +41,17 @@ export function AdminConsole({
     <div className="admin-shell">
       {/* ── Admin sidebar (desktop) ── */}
       <aside className="admin-sidebar">
-        <div className="admin-brand">
+        <button
+          className="admin-brand admin-brand-btn"
+          onClick={() => navigate('/')}
+          title="Back to dashboard"
+        >
           <span className="admin-brand-icon"><ShieldCheckIcon size={17} /></span>
-          <div>
+          <span>
             <span className="admin-brand-name">Vitralume</span>
             <span className="admin-brand-sub">Admin Console</span>
-          </div>
-        </div>
+          </span>
+        </button>
 
         <nav className="admin-nav">
           {(Object.keys(SUB_META) as Sub[]).map(s => {
