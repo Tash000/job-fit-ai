@@ -2002,6 +2002,7 @@ code { font-family: var(--font-mono); }
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--space-4);
 }
+.stat-grid > * { min-width: 0; }
 
 /* Stat cards double as navigation buttons (dashboard + admin overview). */
 .stat-card-btn {
@@ -2052,6 +2053,10 @@ code { font-family: var(--font-mono); }
   gap: var(--space-5);
   align-items: start;
 }
+/* Grid items default to min-width:auto, which refuses to shrink below the
+   widest unbreakable content (e.g. a long company name in nowrap text) and
+   blows the card past the viewport on phones. Let them shrink to the column. */
+.dash-grid > * { min-width: 0; }
 
 .dash-app-row {
   display: flex;
