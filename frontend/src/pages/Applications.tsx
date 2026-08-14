@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   BriefcaseIcon, PlusIcon, TrashIcon, ClipboardPasteIcon, WandIcon,
   XCircleIcon, SparklesIcon, SaveIcon, ClipboardListIcon, TargetIcon,
-  BookmarkIcon, BookmarkCheckIcon, AlertTriangleIcon, ArchiveIcon,
+  BookmarkIcon, BookmarkCheckIcon, AlertTriangleIcon, ArchiveIcon, ArrowLeftIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Notify, Settings } from '../lib/types'
@@ -240,11 +240,18 @@ interface ApplicationsViewProps {
   onNeedSetup?: () => void
   /** Account settings (setup state + free allowance) for button states. */
   settings?: Settings | null
+  /** Filter to apply on mount (e.g. from a dashboard stat card click). */
+  initialFilter?: AppsFilter
+  /** Bump to re-apply ``initialFilter`` (dashboard stat clicks while mounted). */
+  filterToken?: number
 }
 
-type Filter = 'all' | 'applied' | 'bookmarked'
+/** List filters. ``analyzed`` = at least one analysis ran (match_score > 0). */
+export type AppsFilter = 'all' | 'analyzed' | 'applied' | 'bookmarked'
 
-export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeedSetup, settings }: ApplicationsViewProps) {
+type Filter = AppsFilter
+
+export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeedSetup, settings, initialFilter, filterToken }: ApplicationsViewProps) {
   const [apps, setApps] = useState<AppItem[]>([])
   const [selected, setSelected] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
@@ -252,7 +259,12 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
   const [form, setForm] = useState({ company: '', position: '', location: '', description: '' })
   const [dup, setDup] = useState<{ id: number; company: string; position: string } | null>(null)
   const [limit, setLimit] = useState<{ count: number; max: number; oldest: { id: number; company: string; position: string } | null } | null>(null)
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>(initialFilter ?? 'all')
+
+  // Dashboard stat cards can request a filter while this view is mounted.
+  useEffect(() => {
+    if (filterToken && filterToken > 0 && initialFilter) setFilter(initialFilter)
+  }, [filterToken, initialFilter])
 
   const load = useCallback(async () => {
     try {
@@ -321,7 +333,12 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
     await load()
   }
 
-  const filtered = apps.filter(a => filter === 'all' ? true : filter === 'applied' ? a.applied : a.bookmarked)
+  const filtered = apps.filter(a =>
+    filter === 'all' ? true
+    : filter === 'analyzed' ? a.match_score > 0
+    : filter === 'applied' ? a.applied
+    : a.bookmarked,
+  )
 
   return (
     <>
@@ -350,8 +367,8 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
           onClose={() => setLimit(null)}
         />
       )}
-      <div className="split-layout">
-        <div className="flex flex-col gap-16">
+      <div className="split-layout apps-layout">
+        <div className="apps-list-col flex flex-col gap-16">
           <div className="flex items-center justify-between flex-wrap" style={{ gap: 8 }}>
             <div>
               <h2>Applications</h2>
@@ -376,8 +393,8 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
 
           {/* Filters */}
           {apps.length > 0 && (
-            <div className="tabs" style={{ maxWidth: 360 }}>
-              {([['all', 'All'], ['applied', 'Applied'], ['bookmarked', 'Bookmarked']] as [Filter, string][]).map(([k, label]) => (
+            <div className="tabs" style={{ maxWidth: 420 }}>
+              {([['all', 'All'], ['analyzed', 'Analyzed'], ['applied', 'Applied'], ['bookmarked', 'Bookmarked']] as [Filter, string][]).map(([k, label]) => (
                 <button key={k} className={`tab-btn ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>
                   {k === 'applied' ? '✓ ' : k === 'bookmarked' ? <BookmarkIcon size={12} style={{ display: 'inline', marginRight: 3 }} /> : null}
                   {label}
@@ -433,7 +450,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
                 : 'No applications match this filter.'}</p>
             </div>
           ) : (
-            <div className="app-list scroll-y" style={{ maxHeight: 'calc(100vh - 240px)' }}>
+            <div className="app-list scroll-y app-list-scroll">
               {filtered.map(a => (
                 <div
                   key={a.id}
@@ -482,8 +499,13 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
           )}
         </div>
 
-        {/* ── Right panel: detail ── */}
-        <div>
+        {/* ── Right panel: detail (full-screen drill-down on mobile) ── */}
+        <div className={`apps-detail-col ${selected != null ? 'is-open' : ''}`}>
+          {selected != null && (
+            <button className="btn btn-ghost btn-sm detail-back-btn" onClick={() => setSelected(null)}>
+              <ArrowLeftIcon size={14} />Back to list
+            </button>
+          )}
           {selected
             ? <ApplicationDetail id={selected} notify={notify} onRefreshList={load} onDuplicate={setDup} onNeedSetup={onNeedSetup} settings={settings} />
             : (
