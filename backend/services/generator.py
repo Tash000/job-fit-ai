@@ -17,6 +17,8 @@ import re
 import time
 from typing import List, Dict, Any, Optional
 
+from services.job_scraper import heuristic_extract
+
 # ── Gemini (new google-genai SDK) ───────────────────────────────────────────
 try:
     from google import genai as _genai
@@ -42,111 +44,6 @@ try:
 except ImportError:
     _requests = None
     _REQUESTS_AVAILABLE = False
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MOCK DATA (instant high-fidelity experience when no LLM is available)
-# ══════════════════════════════════════════════════════════════════════════════
-MOCK_ANALYSIS = {
-    "company": "NextGen Robotics Lab",
-    "position": "Computer Vision & Robotics Researcher",
-    "location": "Munich, Germany",
-    "skills": [
-        {"name": "Computer Vision", "level": 5},
-        {"name": "ROS2", "level": 5},
-        {"name": "Python", "level": 5},
-        {"name": "Docker", "level": 4},
-        {"name": "Deep Learning", "level": 5},
-        {"name": "German B2", "level": 2},
-        {"name": "Publications", "level": 4},
-        {"name": "C++", "level": 4},
-    ],
-    "experience": "Master's degree or PhD in Robotics, CS, or related field.",
-    "researchTopics": ["Humanoid Head Control", "Social Robotics", "Real-time Object Detection"],
-    "keywords": ["Computer Vision", "ROS2", "MoveIt", "Gaze Control", "Embedded Control"],
-    "softSkills": ["Interdisciplinary Collaboration", "Scientific Writing"],
-    "responsibilities": [
-        "Develop vision-guided control algorithms for a humanoid robot head.",
-        "Implement real-time visual tracking and gaze control system.",
-        "Publish results in leading robotics conferences (IROS, ICRA).",
-    ],
-    "hiddenRequirements": "Ability to quickly pick up hardware-level driver development.",
-}
-
-MOCK_SUITABILITY = {
-    "overallMatch": 86,
-    "technical": 92,
-    "research": 81,
-    "leadership": 75,
-    "communication": 88,
-    "strengths": [
-        {"title": "Humanoid Robotics", "desc": "Substantial experience developing facial and physical humanoid mechanisms."},
-        {"title": "AI & Computer Vision", "desc": "Solid foundation in deep learning and image processing."},
-        {"title": "Publications", "desc": "Existing record of writing and publishing peer-reviewed research papers."},
-    ],
-    "weaknesses": [
-        {"title": "ROS2 production experience", "desc": "Mostly academic ROS experience, missing enterprise deployment."},
-        {"title": "C++ implementation speed", "desc": "Intermediate C++, slower execution compared to Python."},
-        {"title": "German B2", "desc": "Position mentions German B2 preferred; candidate is at B1/basic level."},
-    ],
-}
-
-MOCK_GAPS = [
-    {
-        "skill": "ROS2 Production Experience",
-        "effort": "20 hours",
-        "resources": ["ROS2 Navigation2 Tutorials", "MoveIt2 Motion Planning", "ROS2 Humble Documentation"],
-        "difficulty": "Medium",
-        "impact": "High",
-    },
-    {
-        "skill": "German B2 Language Proficiency",
-        "effort": "120 hours",
-        "resources": ["Goethe-Institut B2 Course", "DW Learn German Series", "Language Exchange Meetups"],
-        "difficulty": "Hard",
-        "impact": "Medium",
-    },
-]
-
-MOCK_CL_PLAN = [
-    {"paragraph": 1, "topic": "Why NextGen Robotics Lab", "details": "Express specific alignment with their humanoid robotics research and outline how your masters project matches their hardware goals."},
-    {"paragraph": 2, "topic": "Relevant Project (Humanoid Head)", "details": "Detail your experience building a facially expressive humanoid head, focusing on motor control and stereo vision integration."},
-    {"paragraph": 3, "topic": "Research & Publication Overlap", "details": "Outline your published paper on real-time gaze tracking and its direct applicability to their open position."},
-    {"paragraph": 4, "topic": "Career Alignment & Next Steps", "details": "Explain why Munich is a perfect research hub and state your availability for a technical interview."},
-]
-
-MOCK_COVER_LETTER_CLEANED = (
-    "Dear Hiring Committee at NextGen Robotics Lab,\n\n"
-    "Your recent research in vision-guided humanoid locomotion aligns closely with my engineering background. "
-    "Having developed visual tracking systems for social interaction, I am eager to contribute to your Computer Vision & Robotics Researcher role.\n\n"
-    "During my master's project on a facially expressive humanoid head, I realized that integration of visual feedback with motor control is critical. "
-    "I designed stereo-vision gaze control loops that reduced tracking latency by 35%. "
-    "This work utilized Python and ROS for device driver integration, focusing on real-time hardware execution.\n\n"
-    "Additionally, my publication in the IROS 2025 proceedings details a deep learning pipeline for facial gesture recognition under dynamic illumination. "
-    "This research maps directly onto the visual tracking responsibilities described in your posting.\n\n"
-    "I would welcome the opportunity to discuss my technical qualifications and research interests in an interview."
-)
-
-MOCK_AUDIT_TRAIL = [
-    {"sentence": "Dear Hiring Committee at NextGen Robotics Lab,", "source": "Job Advertisement", "status": "verified"},
-    {"sentence": "Your recent research in vision-guided humanoid locomotion aligns closely with my engineering background.", "source": "Company Research (Website)", "status": "verified"},
-    {"sentence": "Having developed visual tracking systems for social interaction, I am eager to contribute to your Computer Vision & Robotics Researcher role.", "source": "Resume (Skills/Experience)", "status": "verified"},
-    {"sentence": "During my master's project on a facially expressive humanoid head, I realized that integration of visual feedback with motor control is critical.", "source": "Project: Facially Expressive Humanoid Head", "status": "verified"},
-    {"sentence": "I designed stereo-vision gaze control loops that reduced tracking latency by 35%.", "source": "Project: Facially Expressive Humanoid Head", "status": "verified"},
-    {"sentence": "This work utilized Python and ROS for device driver integration, focusing on real-time hardware execution.", "source": "Resume (Technologies)", "status": "verified"},
-    {"sentence": "Additionally, my publication in the IROS 2025 proceedings details a deep learning pipeline for facial gesture recognition under dynamic illumination.", "source": "Publication: Real-Time Gaze & Expression Tracking", "status": "verified"},
-    {"sentence": "This research maps directly onto the visual tracking responsibilities described in your posting.", "source": "Job Advertisement", "status": "verified"},
-    {"sentence": "I would welcome the opportunity to discuss my technical qualifications and research interests in an interview.", "source": "General Closing", "status": "verified"},
-]
-
-MOCK_FEEDBACK = {
-    "naturalness": 9.1,
-    "grammar": 9.8,
-    "researchFit": 9.4,
-    "specificity": 8.9,
-    "aiRisk": "Low",
-    "overall": 9.3,
-}
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Rate-limit / quota error detection helpers
@@ -301,6 +198,15 @@ class _OllamaBackend:
 # Main Multi-Provider Router
 # ══════════════════════════════════════════════════════════════════════════════
 
+class NoProviderError(RuntimeError):
+    """Raised when an AI task is requested but no provider is available.
+
+    This replaces the old behaviour of silently returning canned mock data —
+    in production, users must configure their own provider key (or be within
+    the platform's free allowance) before any generation runs.
+    """
+
+
 class CopilotGenerator:
     """
     Unified LLM interface for all generation tasks.
@@ -310,7 +216,8 @@ class CopilotGenerator:
         "nim"     → tries NIM first, then Gemini, then Ollama
         "ollama"  → tries Ollama first, then Gemini, then NIM
 
-    Falls back to mock data if all providers fail.
+    When no provider is available (or all of them fail) the task methods raise
+    ``NoProviderError`` — the API never returns canned/mock data.
     """
 
     def __init__(
@@ -397,7 +304,7 @@ class CopilotGenerator:
     def analyze_job(self, job_text: str) -> Dict[str, Any]:
         """Module 1: Extract Job Requirements."""
         if not self.client_active:
-            return MOCK_ANALYSIS
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         prompt = f"""
 Analyze this job advertisement and return a JSON object with:
@@ -423,12 +330,14 @@ Return ONLY valid JSON. Do not include markdown tags.
                 return _parse_json_response(raw)
         except Exception as e:
             print(f"[analyze_job] Parse error: {e}")
-        return MOCK_ANALYSIS
+        raise NoProviderError(
+            "AI analysis failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def analyze_suitability(self, profile: Dict[str, Any], job_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Module 2 & 3: Match profile and produce Suitability and Gap Analysis."""
         if not self.client_active:
-            return {"suitability": MOCK_SUITABILITY, "gaps": MOCK_GAPS}
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         prompt = f"""
 Compare the candidate's Profile with the Job Analysis.
@@ -462,7 +371,9 @@ Return ONLY valid JSON.
                 return _parse_json_response(raw)
         except Exception as e:
             print(f"[analyze_suitability] Parse error: {e}")
-        return {"suitability": MOCK_SUITABILITY, "gaps": MOCK_GAPS}
+        raise NoProviderError(
+            "AI analysis failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def plan_cover_letter(
         self,
@@ -479,7 +390,7 @@ Return ONLY valid JSON.
           → why this lab (specific papers) → research vision & close.
         """
         if not self.client_active:
-            return MOCK_CL_PLAN
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         if style in ("phd", "academic"):
             structure = """
@@ -524,7 +435,9 @@ Return ONLY valid JSON.
                 return _parse_json_response(raw)
         except Exception as e:
             print(f"[plan_cover_letter] Parse error: {e}")
-        return MOCK_CL_PLAN
+        raise NoProviderError(
+            "Cover-letter planning failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def generate_cover_letter(
         self,
@@ -536,11 +449,7 @@ Return ONLY valid JSON.
     ) -> Dict[str, Any]:
         """Modules 6-9: Cover Letter Writer, Humanizer, Truthfulness Guard, Feedback."""
         if not self.client_active:
-            cl = MOCK_COVER_LETTER_CLEANED
-            forbidden = settings.get("forbidden_phrases", [])
-            for phrase in forbidden:
-                cl = re.sub(rf"(?i){re.escape(phrase)}", "[STRIPPED CLICHÉ]", cl)
-            return {"coverLetter": cl, "auditTrail": MOCK_AUDIT_TRAIL, "feedback": MOCK_FEEDBACK}
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         forbidden_list = settings.get("forbidden_phrases", [])
         tone_prefs = settings.get("tone_settings", {})
@@ -617,7 +526,9 @@ Return ONLY valid JSON.
                 return _parse_json_response(raw)
         except Exception as e:
             print(f"[generate_cover_letter] Parse error: {e}")
-        return {"coverLetter": MOCK_COVER_LETTER_CLEANED, "auditTrail": MOCK_AUDIT_TRAIL, "feedback": MOCK_FEEDBACK}
+        raise NoProviderError(
+            "Cover-letter generation failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def refine_cover_letter(
         self,
@@ -633,9 +544,7 @@ Return ONLY valid JSON.
         then rewrites it addressing the specific issues raised.
         """
         if not self.client_active:
-            # Mock: append a note that feedback was applied
-            improved = current_letter + f"\n\n[Refined based on feedback: {user_feedback}]"
-            return {"coverLetter": improved, "auditTrail": MOCK_AUDIT_TRAIL, "feedback": MOCK_FEEDBACK}
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         forbidden_list = settings.get("forbidden_phrases", [])
         tone_prefs = settings.get("tone_settings", {})
@@ -681,7 +590,9 @@ Return ONLY valid JSON.
                 return _parse_json_response(raw)
         except Exception as e:
             print(f"[refine_cover_letter] Parse error: {e}")
-        return {"coverLetter": current_letter, "auditTrail": MOCK_AUDIT_TRAIL, "feedback": MOCK_FEEDBACK, "changesSummary": "Refinement failed, original kept."}
+        raise NoProviderError(
+            "Refinement failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def parse_resume(self, resume_text: str) -> Dict[str, Any]:
         """
@@ -703,7 +614,7 @@ Return ONLY valid JSON.
         }
 
         if not self.client_active:
-            return EMPTY_PROFILE
+            raise NoProviderError("No AI provider configured. Add your Gemini (or NIM/Ollama) key in Settings first.")
 
         prompt = f"""
 You are an expert resume/CV parser. Read EVERY section of the resume and map it into
@@ -754,16 +665,21 @@ Return ONLY valid JSON. No markdown, no explanation.
                 return parsed
         except Exception as e:
             print(f"[parse_resume] Parse error: {e}")
-        return EMPTY_PROFILE
+        raise NoProviderError(
+            "Resume parsing failed — your provider key may be invalid or out of quota. Check it in Settings and try again."
+        )
 
     def extract_job_details(self, pasted_text: str) -> Dict[str, Any]:
         """
         AI-powered job posting extractor.
-        AI extracts ONLY company, position, location.
-        The full raw pasted_text is ALWAYS used as description — nothing is shortened.
+        AI extracts ONLY company, position, location; missing fields are patched
+        with a heuristic fallback so the result is never empty. The full raw
+        pasted_text is ALWAYS used as description — nothing is shortened.
         """
+        # Heuristic pass (no LLM) — used as the base so AI only improves on it.
+        heuristic = heuristic_extract(pasted_text)
         if not self.client_active:
-            return {"company": "", "position": "", "location": "", "description": pasted_text}
+            return heuristic
 
         prompt = f"""
 Extract ONLY the following three fields from this job posting text.
@@ -783,19 +699,18 @@ Return ONLY valid JSON. No markdown. Example: {{"company": "TU Munich", "positio
         try:
             raw = self._generate(prompt)
             if raw:
-                meta = _parse_json_response(raw)
-                # Always attach the COMPLETE original text as description
-                meta["description"] = pasted_text
+                meta = _parse_json_response(raw) or {}
+                # Patch empty AI fields from the heuristic pass so "company" is
+                # never blank when the text clearly contains it.
+                for key in ("company", "position", "location"):
+                    if not str(meta.get(key) or "").strip():
+                        meta[key] = heuristic.get(key, "")
+                meta["description"] = pasted_text  # full text always preserved
                 return meta
         except Exception as e:
             print(f"[extract_job_details] Parse error: {e}")
 
-        # Fallback: best-effort from first lines
-        lines = [l.strip() for l in pasted_text.split('\n') if l.strip()]
-        return {
-            "company": lines[0] if lines else "",
-            "position": lines[1] if len(lines) > 1 else "",
-            "location": "",
-            "description": pasted_text  # full text always preserved
-        }
+        # Fallback: heuristic extraction (works without any LLM)
+        heuristic["description"] = pasted_text
+        return heuristic
 
