@@ -80,6 +80,8 @@ def _migrate() -> None:
     _add_column("applications", "applied_date", "VARCHAR(16)")
     _add_column("applications", "follow_up", "BOOLEAN NOT NULL DEFAULT {default}")
     _add_column("applications", "bookmarked", "BOOLEAN NOT NULL DEFAULT {default}")
+    # Link to the original job posting — powers the "Job site" apply button.
+    _add_column("applications", "job_url", "VARCHAR(2048)")
     # When the job was last analyzed (shown to the user as a timestamp).
     _add_column("applications", "analyzed_at", "TIMESTAMP")
     # Friendly nickname + admin email whitelist.
@@ -137,6 +139,8 @@ class Application(Base):
     applied_date = Column(String(16), default=None)  # ISO date (YYYY-MM-DD)
     follow_up = Column(Boolean, default=False)
     bookmarked = Column(Boolean, default=False)
+    # Original job posting URL — shown as the "Job site" apply button.
+    job_url = Column(String(2048), default="")
     analyzed_at = Column(DateTime, default=None)    # last time the job was analyzed
 
     details = Column(JSON, default=None)            # job analysis, suitability, research matcher

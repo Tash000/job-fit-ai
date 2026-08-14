@@ -129,6 +129,7 @@ class ApplicationCreate(BaseModel):
     position: str = ""
     location: str = ""
     description: str = ""
+    job_url: str = ""
 
 
 class ApplicationGenerateRequest(BaseModel):
@@ -537,6 +538,7 @@ def _app_summary(r: db.Application) -> Dict[str, Any]:
         "applied_date": r.applied_date,
         "follow_up": bool(r.follow_up),
         "bookmarked": bool(r.bookmarked),
+        "job_url": r.job_url or "",
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "analyzed_at": r.analyzed_at.isoformat() if r.analyzed_at else None,
     }
@@ -981,6 +983,7 @@ def create_application(
         position=payload.position.strip(),
         location=payload.location.strip(),
         description=payload.description,
+        job_url=payload.job_url.strip() if payload.job_url else "",
         status="New",
         match_score=0,
     )
@@ -1006,6 +1009,7 @@ class ApplicationFlags(BaseModel):
     applied_date: Optional[str] = None
     follow_up: Optional[bool] = None
     bookmarked: Optional[bool] = None
+    job_url: Optional[str] = None
 
 
 @app.patch("/api/applications/{app_id}")
@@ -1024,6 +1028,8 @@ def update_application_flags(
         row.follow_up = payload.follow_up
     if payload.bookmarked is not None:
         row.bookmarked = payload.bookmarked
+    if payload.job_url is not None:
+        row.job_url = payload.job_url.strip()
     if row.applied and not row.applied_date:
         row.applied_date = datetime.utcnow().strftime("%Y-%m-%d")
     db_session.commit()
