@@ -3,7 +3,7 @@ import {
   CpuIcon, ServerIcon, ShieldCheckIcon, CheckCircleIcon,
   SaveIcon, PlusIcon, TrashIcon, ExternalLinkIcon, BrainCircuitIcon, ZapIcon,
   PaletteIcon, SunIcon, MoonIcon, MonitorIcon, AlertTriangleIcon, LockIcon,
-  StarIcon, type LucideIcon,
+  StarIcon, RotateCcwIcon, type LucideIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { Notify, Settings as SettingsData } from '../lib/types'
@@ -196,6 +196,9 @@ export function SettingsView({
     const body: Record<string, unknown> = {}
     if (providerTab === 'gemini') {
       body.gemini_models = s.gemini_models
+      // Preserve the admin-follow state: False means "keep using the admin-
+      // managed top-5", True means "this is my own custom list".
+      if (typeof s.gemini_models_custom === 'boolean') body.gemini_models_custom = s.gemini_models_custom
       if (newGemini.some(k => k.trim())) body.gemini_api_keys = newGemini
       if (remGemini.length) body.gemini_remove = remGemini
     } else if (providerTab === 'nim') {
@@ -385,6 +388,14 @@ export function SettingsView({
               <p className="form-hint">Keys are encrypted and stored server-side. They are never shown again — save new keys to replace existing ones.</p>
 
               <div className="settings-section-title">Models</div>
+              {(s.gemini_models_custom === false || s.gemini_default_models) && (
+                <div className="admin-managed-hint">
+                  <ShieldCheckIcon size={12} />
+                  {s.gemini_models_custom === false
+                    ? <>Using the admin-managed model list — it updates automatically when an admin changes it. You can edit and save your own list any time.</>
+                    : <>Admin-managed default: <span className="font-mono">{s.gemini_default_models?.join(', ')}</span></>}
+                </div>
+              )}
               <div className="key-list">
                 {s.gemini_models.map((m, i) => (
                   <div key={i} className="key-row model-row">
@@ -396,10 +407,10 @@ export function SettingsView({
                       {i === 0 ? <CheckCircleIcon size={14} /> : <StarIcon size={14} />}
                     </button>
                     <input className="form-input flex-1 font-mono" value={m}
-                      onChange={e => setS(x => x ? { ...x, gemini_models: x.gemini_models.map((v, j) => j === i ? e.target.value : v) } : x)} />
+                      onChange={e => setS(x => x ? { ...x, gemini_models: x.gemini_models.map((v, j) => j === i ? e.target.value : v), gemini_models_custom: true } : x)} />
                     {i === 0 && <span className="active-model-pill">Active now</span>}
                     <button className="btn btn-danger btn-icon btn-sm"
-                      onClick={() => setS(x => x ? { ...x, gemini_models: x.gemini_models.filter((_, j) => j !== i) } : x)}>
+                      onClick={() => setS(x => x ? { ...x, gemini_models: x.gemini_models.filter((_, j) => j !== i), gemini_models_custom: true } : x)}>
                       <TrashIcon size={12} />
                     </button>
                   </div>
@@ -408,7 +419,21 @@ export function SettingsView({
                   <PlusIcon size={13} />Add Model
                 </button>
               </div>
-              <p className="form-hint">The default model is tried first; on rate limits it automatically advances to the next key/model pair.</p>
+              <div className="flex items-center gap-8 flex-wrap">
+                {s.gemini_models_custom !== false && s.gemini_default_models?.length && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setS(x => x ? {
+                      ...x,
+                      gemini_models: [...(x.gemini_default_models ?? [])],
+                      gemini_models_custom: false,
+                    } : x)}
+                  >
+                    <RotateCcwIcon size={12} />Reset to admin models
+                  </button>
+                )}
+                <span className="text-xs text-muted">The default model is tried first; on rate limits it automatically advances to the next key/model pair.</span>
+              </div>
 
               <ProviderActiveToggle
                 label="Google Gemini"

@@ -1,5 +1,5 @@
 import {
-  LayoutDashboardIcon, UsersIcon, ActivityIcon, ShieldCheckIcon,
+  LayoutDashboardIcon, UsersIcon, ActivityIcon, ShieldCheckIcon, CpuIcon,
   ArrowLeftIcon, SunIcon, MoonIcon, LogOutIcon,
 } from 'lucide-react'
 import type { AuthUser } from '../../lib/auth'
@@ -8,13 +8,15 @@ import { AdminOverview } from './AdminOverview'
 import { AdminUsers } from './AdminUsers'
 import { AdminUserDetail } from './AdminUserDetail'
 import { AdminActivity } from './AdminActivity'
+import { AdminGeminiModels } from './AdminGeminiModels'
 
-type Sub = 'dashboard' | 'users' | 'activity'
+type Sub = 'dashboard' | 'users' | 'activity' | 'models'
 
 const SUB_META: Record<Sub, { label: string; icon: typeof LayoutDashboardIcon; hint: string }> = {
   dashboard: { label: 'Overview', icon: LayoutDashboardIcon, hint: 'Platform usage at a glance' },
   users:     { label: 'Users', icon: UsersIcon, hint: 'Accounts, limits, and admin status' },
   activity:  { label: 'Activity', icon: ActivityIcon, hint: 'Audit trail of recent actions' },
+  models:    { label: 'Gemini Models', icon: CpuIcon, hint: 'Top-5 models used by every account' },
 }
 
 export function AdminConsole({
@@ -117,6 +119,7 @@ export function AdminConsole({
             <AdminUsers navigate={navigate} />
           ))}
           {sub === 'activity' && <AdminActivity />}
+          {sub === 'models' && <AdminGeminiModels notify={notify} />}
         </main>
       </div>
 

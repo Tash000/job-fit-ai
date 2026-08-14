@@ -198,6 +198,10 @@ export interface ResumeLibrary {
 
 export interface Settings {
   gemini_models: string[]
+  /** Admin-managed top-5 list; used when gemini_models_custom is false. */
+  gemini_default_models?: string[]
+  /** False → this account follows the admin-managed platform default. */
+  gemini_models_custom?: boolean
   nim_models: string[]
   nim_base_url: string
   ollama_enabled: boolean
