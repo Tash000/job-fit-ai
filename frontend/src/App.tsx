@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import {
   LayoutDashboardIcon, BriefcaseIcon, UserIcon, SettingsIcon,
   LogOutIcon, SunIcon, MoonIcon, ShieldCheckIcon,
@@ -12,6 +12,8 @@ import { API_BASE as API } from './lib/api'
 import { Toast, LoadingBlock } from './components/ui'
 import { InstallButton } from './components/InstallButton'
 import { InstallPrompt } from './components/InstallPrompt'
+import { SetupWizard } from './components/SetupWizard'
+import { loadCachedSettings, saveCachedSettings } from './lib/settingsCache'
 // The landing page is what a signed-out visitor sees first, so it stays in the
 // entry bundle. Everything behind the sign-in gate is split out: it is dead
 // weight for anonymous traffic, and a signed-in user fetches the chunk while
@@ -23,26 +25,28 @@ const ProfileView = lazy(() => import('./pages/Profile').then(m => ({ default: m
 const SettingsView = lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsView })))
 const AdminConsole = lazy(() => import('./pages/admin/AdminConsole').then(m => ({ default: m.AdminConsole })))
 
-type View = 'dashboard' | 'apps' | 'profile' | 'settings'
+type View = 'dashboard' | 'profile' | 'apps' | 'settings'
 
+// Sidebar order (desktop + mobile): Dashboard, Resume & Profile, Applications,
+// Settings — Resume sits second so users find their setup step right away.
 const VIEW_META: Record<View, { label: string; short: string; icon: typeof LayoutDashboardIcon; hint: string }> = {
   dashboard: { label: 'Dashboard', short: 'Home', icon: LayoutDashboardIcon, hint: 'Your job hunt at a glance' },
-  apps:      { label: 'Applications', short: 'Apps', icon: BriefcaseIcon, hint: 'Track, analyze, and perfect every application' },
   profile:   { label: 'Resume & Profile', short: 'Profile', icon: UserIcon, hint: 'Your resume powers every analysis' },
+  apps:      { label: 'Applications', short: 'Apps', icon: BriefcaseIcon, hint: 'Track, analyze, and perfect every application' },
   settings:  { label: 'Settings', short: 'Settings', icon: SettingsIcon, hint: 'Providers, models, appearance' },
 }
 
 /** URL path ↔ view mapping for the user-mode pages. */
 const VIEW_PATHS: Record<View, string> = {
   dashboard: '/',
-  apps: '/applications',
   profile: '/profile',
+  apps: '/applications',
   settings: '/settings',
 }
 const PATH_VIEW: Record<string, View> = {
   '/': 'dashboard',
-  '/applications': 'apps',
   '/profile': 'profile',
+  '/applications': 'apps',
   '/settings': 'settings',
 }
 
@@ -50,10 +54,15 @@ function currentPath() {
   return window.location.pathname
 }
 
+/** Derive the view from a URL path (defaults to dashboard). */
+function viewFromPath(p: string): View {
+  return PATH_VIEW[p] ?? 'dashboard'
+}
+
 export default function App() {
   const { user, loading, signOut } = useAuth()
   const { resolved: theme, toggleTheme } = useAppearance()
-  const [nav, setNav] = useState<View>(() => PATH_VIEW[currentPath()] ?? 'dashboard')
+  const [nav, setNav] = useState<View>(() => viewFromPath(currentPath()))
   const [path, setPath] = useState(currentPath)
   const [toast, setToast] = useState<{ msg: string; type: string } | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -61,33 +70,45 @@ export default function App() {
   const [focusApp, setFocusApp] = useState<number | null>(null)
   const [newAppToken, setNewAppToken] = useState(0)
   const [pasteToken, setPasteToken] = useState(0)
+  const [showSetup, setShowSetup] = useState(false)
+  // Show the setup popup at most once per page load (i.e. per login), until
+  // the account has its own provider key.
+  const setupPrompted = useRef(false)
 
   const notify = useCallback((msg: string, type: 'info' | 'success' | 'error' = 'info') => setToast({ msg, type }), [])
   const closeToast = useCallback(() => setToast(null), [])
 
-  /** Lightweight client-side router: updates the URL and re-renders. */
+  /** Lightweight client-side router: pushes one entry per explicit navigation. */
   const navigate = useCallback((to: string) => {
     if (currentPath() !== to) window.history.pushState({}, '', to)
-    setPath(currentPath())
+    setPath(to)
+    const v = viewFromPath(to)
+    setNav(v)
     window.scrollTo(0, 0)
   }, [])
 
-  // Back/forward buttons update the view.
+  // Browser Back/Forward: derive the view from the URL WITHOUT pushing new
+  // history entries. This is what makes the back button walk through the app's
+  // views (dashboard → profile → apps → settings) instead of fighting the
+  // router or escaping to the previous site.
   useEffect(() => {
-    const onPop = () => { setPath(currentPath()); window.scrollTo(0, 0) }
+    const onPop = () => {
+      const p = currentPath()
+      setPath(p)
+      setNav(viewFromPath(p))
+      window.scrollTo(0, 0)
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // Keep the URL in sync with the user-mode view (and restore nav when coming
-  // back from the admin console).
+  // Clean up Supabase OAuth/magic-link hash leftovers (#access_token=…) so a
+  // Back click or refresh never replays the token exchange.
   useEffect(() => {
-    if (path.startsWith('/admin')) return
-    const target = VIEW_PATHS[nav]
-    if (currentPath() !== target) window.history.pushState({}, '', target)
-    const mapped = PATH_VIEW[currentPath()]
-    if (mapped && mapped !== nav) setNav(mapped)
-  }, [nav, path])
+    if (window.location.hash) {
+      window.history.replaceState({}, '', window.location.pathname + window.location.search)
+    }
+  }, [])
 
   // If the session expires server-side (401), log out and show the landing page.
   useEffect(() => {
@@ -96,8 +117,8 @@ export default function App() {
     return () => window.removeEventListener('vitralume:auth-expired', onExpired)
   }, [signOut])
 
-  // Only touch the settings endpoint when signed in — signed-out visitors on the
-  // landing page should never trigger API calls (fixes stray 401/500 network errors).
+  // Load settings once per user: seed from the per-user cache so the first
+  // paint is instant, then refresh from the server and update the cache.
   const userId = user?.id
   useEffect(() => {
     if (!userId) {
@@ -105,12 +126,29 @@ export default function App() {
       setSettingsLoaded(false)
       return
     }
+    const cached = loadCachedSettings(userId)
+    if (cached) setSettings(cached)
     setSettingsLoaded(false)
     fetch(`${API}/api/settings`)
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { setSettings(d); setSettingsLoaded(true) })
-      .catch(() => { setSettingsLoaded(true) })
+      .then(d => {
+        if (d) {
+          setSettings(d)
+          saveCachedSettings(userId, d)
+        }
+        setSettingsLoaded(true)
+      })
+      .catch(() => setSettingsLoaded(true))
   }, [userId])
+
+  // Setup popup: every login, until the account adds its own provider key.
+  const needsOwnKey = settingsLoaded && !!user && !settings?.is_admin && !settings?.has_own_key
+  useEffect(() => {
+    if (needsOwnKey && !setupPrompted.current) {
+      setupPrompted.current = true
+      setShowSetup(true)
+    }
+  }, [needsOwnKey])
 
   if (loading) {
     return (
@@ -170,14 +208,24 @@ export default function App() {
 
   const goToApps = (appId?: number) => {
     setFocusApp(appId ?? null)
-    setNav('apps')
+    navigate('/applications')
+  }
+  const goToNewApp = () => {
+    setFocusApp(null)
+    setNewAppToken(t => t + 1)
+    navigate('/applications')
+  }
+  const goToSmartPaste = () => {
+    setFocusApp(null)
+    setPasteToken(t => t + 1)
+    navigate('/applications')
   }
 
   return (
     <div className="app-shell">
       {/* ── Sidebar (desktop) ── */}
       <aside className="sidebar">
-        <a className="sidebar-logo" href="#" onClick={e => { e.preventDefault(); setNav('dashboard') }}>
+        <a className="sidebar-logo" href="#" onClick={e => { e.preventDefault(); navigate('/') }}>
           <span className="logo-dot" />
           <span>Vitralume</span>
         </a>
@@ -189,7 +237,7 @@ export default function App() {
               <button
                 key={v}
                 className={`side-nav-btn ${nav === v ? 'active' : ''}`}
-                onClick={() => setNav(v)}
+                onClick={() => navigate(VIEW_PATHS[v])}
                 title={VIEW_META[v].label}
               >
                 <Icon size={17} />
@@ -268,19 +316,26 @@ export default function App() {
             {nav === 'dashboard' && (
               <DashboardView
                 onOpenApp={id => goToApps(id)}
-                onNewApp={() => { setFocusApp(null); setNav('apps'); setNewAppToken(t => t + 1) }}
-                onSmartPaste={() => { setFocusApp(null); setNav('apps'); setPasteToken(t => t + 1) }}
-                onGoTo={v => setNav(v)}
+                onNewApp={goToNewApp}
+                onSmartPaste={goToSmartPaste}
+                onGoTo={v => navigate(VIEW_PATHS[v])}
                 userName={user.email.split('@')[0]}
                 settings={settings}
               />
             )}
             {nav === 'apps' && (
-              <ApplicationsView notify={notify} focusId={focusApp} newToken={newAppToken} pasteToken={pasteToken} />
+              <ApplicationsView
+                notify={notify}
+                focusId={focusApp}
+                newToken={newAppToken}
+                pasteToken={pasteToken}
+                onNeedSetup={() => setShowSetup(true)}
+                settings={settings}
+              />
             )}
             {nav === 'profile' && <ProfileView notify={notify} />}
             {nav === 'settings' && (
-              <SettingsView notify={notify} onSaved={s => setSettings(s)} />
+              <SettingsView initial={settings} notify={notify} onSaved={s => { setSettings(s); if (userId) saveCachedSettings(userId, s) }} />
             )}
           </Suspense>
         </main>
@@ -294,7 +349,7 @@ export default function App() {
             <button
               key={v}
               className={`mobile-nav-btn ${nav === v ? 'active' : ''}`}
-              onClick={() => setNav(v)}
+              onClick={() => navigate(VIEW_PATHS[v])}
               aria-label={VIEW_META[v].label}
             >
               <Icon size={18} />
@@ -315,6 +370,12 @@ export default function App() {
       </nav>
 
       <InstallPrompt />
+      <SetupWizard
+        open={showSetup}
+        settings={settings}
+        onClose={() => setShowSetup(false)}
+        onGoTo={navigate}
+      />
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={closeToast} />}
     </div>
   )
