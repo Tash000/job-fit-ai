@@ -3,17 +3,20 @@ import {
   BriefcaseIcon, PlusIcon, ClipboardPasteIcon, ChevronRightIcon,
   TargetIcon, TrendingUpIcon, ZapIcon, UserIcon, CpuIcon,
   SparklesIcon, ArrowRightIcon, LayoutDashboardIcon, CheckCircleIcon, KeyIcon,
+  FileTextIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Profile, Settings } from '../lib/types'
 import { scoreClass, statusBadge, isProviderActive, isUsingFreeAllowance } from '../lib/types'
 import { LoadingBlock } from '../components/ui'
+import type { AppsFilter } from './Applications'
 
 interface DashboardProps {
   onOpenApp: (id: number) => void
   onNewApp: () => void
   onSmartPaste: () => void
-  onGoTo: (view: 'apps' | 'profile' | 'settings') => void
+  /** ``filter`` narrows the Applications list (e.g. only analyzed jobs). */
+  onGoTo: (view: 'apps' | 'profile' | 'settings', filter?: AppsFilter) => void
   userName?: string
   /** Fetched once in App; passed down so the dashboard doesn't refetch it. */
   settings: Settings | null
@@ -22,6 +25,7 @@ interface DashboardProps {
 export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userName, settings }: DashboardProps) {
   const [apps, setApps] = useState<AppItem[] | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [resumeCount, setResumeCount] = useState(0)
 
   useEffect(() => {
     fetch(`${API}/api/applications`)
@@ -32,6 +36,10 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
       .then(r => r.json())
       .then(d => setProfile(d && d.resume_text !== undefined ? d : null))
       .catch(() => setProfile(null))
+    fetch(`${API}/api/resumes`)
+      .then(r => r.json())
+      .then(d => setResumeCount(Array.isArray(d?.resumes) ? d.resumes.length : 0))
+      .catch(() => setResumeCount(0))
   }, [])
 
   if (apps === null) return <LoadingBlock label="Loading your dashboard…" />
@@ -67,10 +75,11 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
   const providerActive = isProviderActive(settings)
 
   const stats = [
-    { label: 'Applications', value: apps.length, icon: BriefcaseIcon, tint: 'blue' },
-    { label: 'Analyzed', value: analyzed.length, icon: ZapIcon, tint: 'teal' },
-    { label: 'Applied', value: applied.length, icon: TargetIcon, tint: 'green' },
-    { label: 'Avg. match', value: avgMatch ? `${avgMatch}%` : '—', icon: TrendingUpIcon, tint: 'purple' },
+    { label: 'Applications', value: apps.length, icon: BriefcaseIcon, tint: 'blue', onClick: () => onGoTo('apps', 'all') },
+    { label: 'Analyzed', value: analyzed.length, icon: ZapIcon, tint: 'teal', onClick: () => onGoTo('apps', 'analyzed') },
+    { label: 'Applied', value: applied.length, icon: TargetIcon, tint: 'green', onClick: () => onGoTo('apps', 'applied') },
+    { label: 'Avg. match', value: avgMatch ? `${avgMatch}%` : '—', icon: TrendingUpIcon, tint: 'purple', onClick: () => onGoTo('apps', 'all') },
+    { label: 'Resumes', value: resumeCount, icon: FileTextIcon, tint: 'blue', onClick: () => onGoTo('profile') },
   ]
 
   // Setup checklist: visible until the user adds a key AND uploads a resume.
@@ -120,14 +129,14 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — each card jumps to the matching filtered view */}
       <div className="stat-grid">
-        {stats.map(({ label, value, icon: Icon, tint }) => (
-          <div key={label} className="stat-card">
+        {stats.map(({ label, value, icon: Icon, tint, onClick }) => (
+          <button key={label} className="stat-card stat-card-btn" onClick={onClick} title={`Open ${label}`}>
             <div className={`stat-icon stat-${tint}`}><Icon size={18} /></div>
             <div className="stat-value">{value}</div>
             <div className="stat-label">{label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -175,7 +184,7 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
           <div className="card-header">
             <LayoutDashboardIcon size={15} color="var(--accent-light)" />
             <span className="card-title">Recent Applications</span>
-            <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onGoTo('apps')}>
+            <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={() => onGoTo('apps', 'all')}>
               View all <ArrowRightIcon size={13} />
             </button>
           </div>

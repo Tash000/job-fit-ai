@@ -110,7 +110,7 @@ export function AdminConsole({
         </header>
 
         <main className="admin-content fade-in">
-          {sub === 'dashboard' && <AdminOverview />}
+          {sub === 'dashboard' && <AdminOverview navigate={navigate} />}
           {sub === 'users' && (uid ? (
             <AdminUserDetail uid={uid} navigate={navigate} notify={notify} />
           ) : (

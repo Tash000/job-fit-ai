@@ -20,7 +20,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   ollama: 'Ollama (local)',
 }
 
-export function AdminOverview() {
+export function AdminOverview({ navigate }: { navigate: (to: string) => void }) {
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,38 +44,38 @@ export function AdminOverview() {
         <p className="text-sm text-secondary">Everything happening across the app — usage, storage, and provider health.</p>
       </div>
 
-      {/* ── Headline stats ── */}
+      {/* ── Headline stats — each card drills into the users directory ── */}
       <div className="stat-grid">
-        <div className="stat-card">
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-blue"><UsersIcon size={18} /></div>
           <div className="stat-value">{t.users}</div>
           <div className="stat-label">Users</div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-purple"><BriefcaseIcon size={18} /></div>
           <div className="stat-value">{t.applications}</div>
           <div className="stat-label">Applications</div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-teal"><SparklesIcon size={18} /></div>
           <div className="stat-value">{t.analyses}</div>
           <div className="stat-label">Job analyses</div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-green"><FileTextIcon size={18} /></div>
           <div className="stat-value">{t.resumes}</div>
           <div className="stat-label">Saved resumes</div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-blue"><DatabaseIcon size={18} /></div>
           <div className="stat-value">{formatBytes(t.storage_bytes)}</div>
           <div className="stat-label">Storage used</div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button className="stat-card stat-card-btn" onClick={() => navigate('/admin/users')} title="Open users directory">
           <div className="stat-icon stat-green"><GaugeIcon size={18} /></div>
           <div className="stat-value">{data.avg_match}%</div>
           <div className="stat-label">Avg fit score</div>
-        </div>
+        </button>
       </div>
 
       {/* ── Recent activity & providers ── */}

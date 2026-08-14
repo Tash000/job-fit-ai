@@ -19,6 +19,7 @@ import { loadCachedSettings, saveCachedSettings } from './lib/settingsCache'
 // weight for anonymous traffic, and a signed-in user fetches the chunk while
 // the first API calls are still in flight.
 import LandingPage from './pages/Landing'
+import type { AppsFilter } from './pages/Applications'
 const DashboardView = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.DashboardView })))
 const ApplicationsView = lazy(() => import('./pages/Applications').then(m => ({ default: m.ApplicationsView })))
 const ProfileView = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfileView })))
@@ -70,6 +71,9 @@ export default function App() {
   const [focusApp, setFocusApp] = useState<number | null>(null)
   const [newAppToken, setNewAppToken] = useState(0)
   const [pasteToken, setPasteToken] = useState(0)
+  // Filter requested by a dashboard stat card (e.g. "Analyzed" → apps, filtered).
+  const [appsFilter, setAppsFilter] = useState<AppsFilter>('all')
+  const [appsFilterToken, setAppsFilterToken] = useState(0)
   const [showSetup, setShowSetup] = useState(false)
   // Show the setup popup at most once per page load (i.e. per login), until
   // the account has its own provider key.
@@ -318,7 +322,13 @@ export default function App() {
                 onOpenApp={id => goToApps(id)}
                 onNewApp={goToNewApp}
                 onSmartPaste={goToSmartPaste}
-                onGoTo={v => navigate(VIEW_PATHS[v])}
+                onGoTo={(v, filter) => {
+                  if (filter) {
+                    setAppsFilter(filter)
+                    setAppsFilterToken(t => t + 1)
+                  }
+                  navigate(VIEW_PATHS[v])
+                }}
                 userName={user.email.split('@')[0]}
                 settings={settings}
               />
@@ -329,6 +339,8 @@ export default function App() {
                 focusId={focusApp}
                 newToken={newAppToken}
                 pasteToken={pasteToken}
+                initialFilter={appsFilter}
+                filterToken={appsFilterToken}
                 onNeedSetup={() => setShowSetup(true)}
                 settings={settings}
               />
