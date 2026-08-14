@@ -94,6 +94,9 @@ app.add_middleware(security.SecurityHeadersMiddleware)
 class SettingsUpdate(BaseModel):
     # Non-secret fields (optional → only update what's present)
     gemini_models: Optional[List[str]] = None
+    # Explicitly rejoin the admin-managed default (send False to stop using a
+    # custom list; sent together with gemini_models it still applies).
+    gemini_models_custom: Optional[bool] = None
     nim_models: Optional[List[str]] = None
     nim_base_url: Optional[str] = None
     ollama_enabled: Optional[bool] = None
@@ -259,13 +262,38 @@ def _require_admin(
 # Helpers: settings storage & key handling
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _get_platform_settings(db_session: Session) -> db.PlatformSettings:
+    """Singleton row holding admin-managed platform defaults (id=1)."""
+    row = db_session.query(db.PlatformSettings).filter_by(id=1).first()
+    if row is None:
+        row = db.PlatformSettings(id=1, default_gemini_models=DEFAULT_GEMINI_MODELS)
+        db_session.add(row)
+        db_session.commit()
+        db_session.refresh(row)
+    return row
+
+
+def _platform_gemini_models(db_session: Session) -> List[str]:
+    """The admin-managed top-5 Gemini model list (platform default)."""
+    return _get_platform_settings(db_session).default_gemini_models or DEFAULT_GEMINI_MODELS
+
+
+def _effective_gemini_models(row: db.UserSettings, platform_models: List[str]) -> List[str]:
+    """A user's live Gemini list: their own if they customized it, else the
+    admin-managed platform default. Non-custom accounts therefore follow the
+    admin's top-5 automatically — no manual model entry needed."""
+    if row.gemini_models_custom and row.gemini_models:
+        return row.gemini_models
+    return platform_models or DEFAULT_GEMINI_MODELS
+
+
 def _get_or_create_settings(db_session: Session, user_id: str) -> db.UserSettings:
     row = db_session.query(db.UserSettings).filter_by(user_id=user_id).first()
     if row is None:
         row = db.UserSettings(
             user_id=user_id,
             gemini_keys_enc="[]",
-            gemini_models=DEFAULT_GEMINI_MODELS,
+            gemini_models=_platform_gemini_models(db_session),
             nim_keys_enc="[]",
             nim_models=DEFAULT_NIM_MODELS,
             forbidden_phrases=DEFAULT_FORBIDDEN_PHRASES,
@@ -322,8 +350,12 @@ def _apply_key_edits(db_session: Session, row: db.UserSettings, payload: Setting
         row.nim_keys_enc = _encrypt_key_list(payload.nim_api_keys)
 
 
-def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
-    """Public settings payload. Provider keys are MASKED, never returned raw."""
+def settings_to_public(row: db.UserSettings, platform_models: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Public settings payload. Provider keys are MASKED, never returned raw.
+
+    ``platform_models`` is the admin-managed Gemini default list; when omitted,
+    the row's own list is used (callers without a session still work).
+    """
     gemini_keys = json.loads(row.gemini_keys_enc or "[]")
     nim_keys = json.loads(row.nim_keys_enc or "[]")
 
@@ -346,7 +378,11 @@ def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
     ) or bool(row.ollama_enabled)
 
     return {
-        "gemini_models": row.gemini_models or DEFAULT_GEMINI_MODELS,
+        "gemini_models": _effective_gemini_models(row, platform_models or []),
+        # The admin-managed top-5 the account falls back to when it has not
+        # customized its own list (None → platform default is in effect).
+        "gemini_default_models": platform_models or DEFAULT_GEMINI_MODELS,
+        "gemini_models_custom": bool(row.gemini_models_custom),
         "nim_models": row.nim_models or DEFAULT_NIM_MODELS,
         "nim_base_url": row.nim_base_url or "https://integrate.api.nvidia.com/v1",
         "ollama_enabled": bool(row.ollama_enabled),
@@ -373,13 +409,13 @@ def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
     }
 
 
-def _generator_from_row(row: db.UserSettings) -> CopilotGenerator:
+def _generator_from_row(row: db.UserSettings, platform_models: Optional[List[str]] = None) -> CopilotGenerator:
     """Build an LLM router from a settings row (user's decrypted keys + server defaults)."""
     gemini_keys = _decrypt_key_list(row.gemini_keys_enc) or list(config.GEMINI_SERVER_KEYS)
     nim_keys = _decrypt_key_list(row.nim_keys_enc) or list(config.NIM_SERVER_KEYS)
     return CopilotGenerator(
         gemini_api_keys=gemini_keys,
-        gemini_models=row.gemini_models or DEFAULT_GEMINI_MODELS,
+        gemini_models=_effective_gemini_models(row, platform_models or []),
         nim_api_keys=nim_keys,
         nim_models=row.nim_models or DEFAULT_NIM_MODELS,
         nim_base_url=row.nim_base_url or "https://integrate.api.nvidia.com/v1",
@@ -392,7 +428,10 @@ def _generator_from_row(row: db.UserSettings) -> CopilotGenerator:
 
 def build_generator_for(user_id: str, db_session: Session) -> CopilotGenerator:
     """Build an LLM router using the user's decrypted keys (plus server defaults)."""
-    return _generator_from_row(_get_or_create_settings(db_session, user_id))
+    return _generator_from_row(
+        _get_or_create_settings(db_session, user_id),
+        _platform_gemini_models(db_session),
+    )
 
 
 # ── Free tier & setup gates ───────────────────────────────────────────────────
@@ -660,7 +699,7 @@ def _normalize_profile(parsed: dict) -> dict:
 @app.get("/api/settings")
 def get_settings(request: Request, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_or_create_settings(db_session, user_id)
-    data = settings_to_public(row)
+    data = settings_to_public(row, _platform_gemini_models(db_session))
     is_admin = _is_admin_user(request, user_id, db_session)
     data["is_admin"] = is_admin
     if not is_admin:
@@ -688,6 +727,17 @@ def update_settings(
     updates = {}
     if payload.gemini_models is not None:
         updates["gemini_models"] = [m for m in payload.gemini_models if m.strip()] or DEFAULT_GEMINI_MODELS
+        # A user who saves their own model list opts out of the admin-managed
+        # platform default. An explicit gemini_models_custom=False (rejoin the
+        # admin default) wins over this default.
+        updates["gemini_models_custom"] = (
+            payload.gemini_models_custom
+            if payload.gemini_models_custom is not None
+            else True
+        )
+    elif payload.gemini_models_custom is not None:
+        # Rejoin/leave the admin default without changing the stored list.
+        updates["gemini_models_custom"] = payload.gemini_models_custom
     if payload.nim_models is not None:
         updates["nim_models"] = [m for m in payload.nim_models if m.strip()] or DEFAULT_NIM_MODELS
     if payload.nim_base_url is not None:
@@ -723,7 +773,7 @@ def update_settings(
     _apply_key_edits(db_session, row, payload)
     db_session.commit()
     db_session.refresh(row)
-    data = settings_to_public(row)
+    data = settings_to_public(row, _platform_gemini_models(db_session))
     is_admin = _is_admin_user(request, user_id, db_session)
     data["is_admin"] = is_admin
     if not is_admin:
@@ -1115,8 +1165,8 @@ def generate_application_materials(
     if using_free_allowance:
         _free_allowance_check(request, user_id, db_session, "letter")
 
-    settings = settings_to_public(settings_row)
-    generator = _generator_from_row(settings_row)
+    settings = settings_to_public(settings_row, _platform_gemini_models(db_session))
+    generator = _generator_from_row(settings_row, _platform_gemini_models(db_session))
     try:
         results = generator.generate_cover_letter(
             profile_row.parsed_profile or {},
@@ -1229,7 +1279,7 @@ def refine_application_letter(
     if using_free_allowance:
         _free_allowance_check(request, user_id, db_session, "letter")
 
-    settings = settings_to_public(settings_row)
+    settings = settings_to_public(settings_row, _platform_gemini_models(db_session))
     generator = build_generator_for(user_id, db_session)
     try:
         results = generator.refine_cover_letter(
@@ -1517,7 +1567,10 @@ def clear_account_data(
         row = _get_or_create_settings(db_session, user_id)
         row.gemini_keys_enc = "[]"
         row.nim_keys_enc = "[]"
-        row.gemini_models = DEFAULT_GEMINI_MODELS
+        # Reset follows the admin-managed platform default — after reset the
+        # account returns to the admin's top-5 Gemini models.
+        row.gemini_models = _platform_gemini_models(db_session)
+        row.gemini_models_custom = False
         row.nim_models = DEFAULT_NIM_MODELS
         row.nim_base_url = "https://integrate.api.nvidia.com/v1"
         row.ollama_enabled = False
@@ -1544,6 +1597,51 @@ def admin_status(request: Request, user_id: str = Depends(authed_user), db_sessi
     if config.DEMO_MODE and not email:
         email = "demo@local"
     return {"is_admin": _is_admin_user(request, user_id, db_session), "email": email}
+
+
+@app.get("/api/admin/gemini-models")
+def admin_gemini_models(
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """The admin-managed top-5 Gemini model list (platform default)."""
+    return {"models": _platform_gemini_models(db_session)}
+
+
+class AdminGeminiModelsUpdate(BaseModel):
+    models: List[str] = []
+
+
+@app.put("/api/admin/gemini-models")
+def admin_set_gemini_models(
+    payload: AdminGeminiModelsUpdate,
+    user_id: str = Depends(_require_admin),
+    db_session: Session = Depends(db.get_db),
+):
+    """Set the top-5 Gemini models for the whole platform.
+
+    Every account that has NOT customized its own list resolves to these
+    models immediately (no mass update needed — resolution happens at read
+    time). Users who saved their own list keep theirs until they reset.
+    """
+    cleaned: List[str] = []
+    seen: set = set()
+    for m in payload.models:
+        m = (m or "").strip()
+        if not m:
+            continue
+        if m not in seen:
+            seen.add(m)
+            cleaned.append(m)
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Provide at least one Gemini model.")
+    if len(cleaned) > 5:
+        raise HTTPException(status_code=400, detail="At most 5 Gemini models can be set.")
+    row = _get_platform_settings(db_session)
+    row.default_gemini_models = cleaned
+    db_session.commit()
+    _log_activity(db_session, user_id, "admin_models", ", ".join(cleaned))
+    return {"status": "success", "models": cleaned, "message": "Gemini models updated for all users."}
 
 
 @app.get("/api/admin/overview")
