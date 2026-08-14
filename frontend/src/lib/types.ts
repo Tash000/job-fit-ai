@@ -210,11 +210,39 @@ export interface Settings {
   admin_emails: string[]
   /** Whether the signed-in account may use the admin console. */
   is_admin?: boolean
+  /** True when the account has its OWN provider API key configured. */
+  has_own_key?: boolean
+  /** Free allowance counters for accounts without their own key. */
+  freeUsage?: {
+    analysesUsed: number
+    analysesLimit: number
+    lettersUsed: number
+    lettersLimit: number
+  }
   // Provider keys are WRITE-ONLY: the API returns only masked previews.
   keyInfo?: {
     gemini: { index: number; masked: string }[]
     nim: { index: number; masked: string }[]
   }
+}
+
+/** True when the account must rely on the (limited) platform free allowance. */
+export function isUsingFreeAllowance(settings?: Settings | null) {
+  return !!settings && !settings.is_admin && !settings.has_own_key
+}
+
+/** True when the account's free analysis allowance is fully used. */
+export function freeAnalysesExhausted(settings?: Settings | null) {
+  const fu = settings?.freeUsage
+  if (!fu) return false
+  return (fu.analysesUsed ?? 0) >= (fu.analysesLimit ?? 0) && (fu.analysesLimit ?? 0) > 0
+}
+
+/** True when the account's free cover-letter allowance is fully used. */
+export function freeLettersExhausted(settings?: Settings | null) {
+  const fu = settings?.freeUsage
+  if (!fu) return false
+  return (fu.lettersUsed ?? 0) >= (fu.lettersLimit ?? 0) && (fu.lettersLimit ?? 0) > 0
 }
 
 // ── Admin console domain types ───────────────────────────────────────────
