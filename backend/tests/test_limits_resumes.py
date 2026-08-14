@@ -113,6 +113,42 @@ def test_flags_are_user_scoped(client: TestClient):
     assert client.patch(f"/api/applications/{app_id}", headers=auth("bob"), json={"applied": True}).status_code == 404
 
 
+# ── Job site URL (the "Job site" apply button) ───────────────────────────────
+
+def test_job_url_roundtrip(client: TestClient):
+    """job_url is stored on create, returned in list + detail, and PATCHable."""
+    url = "https://careers.example.com/senior-robotics-engineer"
+    resp = client.post(
+        "/api/applications",
+        headers=auth("alice"),
+        json={"company": "ACME", "position": "R", "location": "B", "description": "jd", "job_url": url},
+    )
+    assert resp.status_code == 200
+    app_id = resp.json()["id"]
+
+    listed = client.get("/api/applications", headers=auth("alice")).json()
+    assert listed[0]["job_url"] == url
+
+    detail = client.get(f"/api/applications/{app_id}", headers=auth("alice")).json()
+    assert detail["job_url"] == url
+
+    # PATCH replaces the link (spaces trimmed).
+    updated = client.patch(
+        f"/api/applications/{app_id}", headers=auth("alice"), json={"job_url": "  https://example.com/new  "}
+    ).json()["application"]
+    assert updated["job_url"] == "https://example.com/new"
+
+    # Clearing the link works too.
+    cleared = client.patch(f"/api/applications/{app_id}", headers=auth("alice"), json={"job_url": ""}).json()["application"]
+    assert cleared["job_url"] == ""
+
+
+def test_job_url_absent_by_default(client: TestClient):
+    app_id = _mk_app(client)
+    detail = client.get(f"/api/applications/{app_id}", headers=auth("alice")).json()
+    assert detail["job_url"] == ""
+
+
 # ── Resume library ────────────────────────────────────────────────────────────
 
 def test_resume_crud_and_limits(client: TestClient, monkeypatch):
