@@ -132,9 +132,18 @@ function ClearDataModal({
 // SETTINGS VIEW
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s: SettingsData) => void }) {
+export function SettingsView({
+  notify, onSaved, initial,
+}: {
+  notify: Notify
+  onSaved: (s: SettingsData) => void
+  /** Settings already fetched by the app shell — renders instantly. */
+  initial?: SettingsData | null
+}) {
   const { theme, accent, setTheme, setAccent } = useAppearance()
-  const [s, setS] = useState<SettingsData | null>(null)
+  // Start from the app shell's copy (or cache) so the page is instant, then
+  // refresh in the background to stay fresh.
+  const [s, setS] = useState<SettingsData | null>(initial ?? null)
   const [saving, setSaving] = useState(false)
   const [newPhrase, setNewPhrase] = useState('')
   const [providerTab, setProviderTab] = useState<Provider>('gemini')
@@ -147,7 +156,12 @@ export function SettingsView({ notify, onSaved }: { notify: Notify; onSaved: (s:
   const [remNim, setRemNim] = useState<number[]>([])
 
   useEffect(() => {
-    fetch(`${API}/api/settings`).then(r => r.json()).then(setS)
+    let cancelled = false
+    fetch(`${API}/api/settings`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && !cancelled) setS(d) })
+      .catch(() => { /* keep the cached copy if the backend is warming up */ })
+    return () => { cancelled = true }
   }, [])
 
   /** PATCH only the supplied fields; server returns the full fresh settings. */

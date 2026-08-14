@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   FileTextIcon, ClipboardListIcon, SparklesIcon, ShieldCheckIcon,
   RefreshCcwIcon, CheckCircleIcon, MessageSquareIcon, DownloadIcon,
   AlertTriangleIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../../lib/api'
-import type { AppDetail, Notify, PlanItem } from '../../lib/types'
+import type { AppDetail, Notify, PlanItem, Settings } from '../../lib/types'
+import { freeLettersExhausted, isUsingFreeAllowance } from '../../lib/types'
 
-export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; notify: Notify; onRefresh: () => void }) {
+export function CoverLetterTab({
+  app, notify, onRefresh, onNeedSetup, settings,
+}: {
+  app: AppDetail
+  notify: Notify
+  onRefresh: () => void
+  /** Open the setup wizard (missing key / free allowance used up). */
+  onNeedSetup?: () => void
+  /** Account settings for allowance-aware button states. */
+  settings?: Settings | null
+}) {
   const [plan, setPlan] = useState<PlanItem[]>(app.cover_letter_plan ?? [])
   const [planning, setPlanning] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -17,6 +28,37 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
   const [changesSummary, setChangesSummary] = useState('')
   const [style, setStyle] = useState('industrial')
   const [clView, setClView] = useState<'letter' | 'audit' | 'feedback'>('letter')
+  // After "Generate Letter" completes, scroll the generated letter into view
+  // instead of making the user hunt for it below the plan editor.
+  const letterCardRef = useRef<HTMLDivElement | null>(null)
+  const scrollAfterGenerate = useRef(false)
+
+  useEffect(() => {
+    if (scrollAfterGenerate.current && app.cover_letter) {
+      scrollAfterGenerate.current = false
+      setClView('letter')
+      const t = window.setTimeout(() => {
+        letterCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 150)
+      return () => window.clearTimeout(t)
+    }
+  }, [app.cover_letter])
+
+  /** Surface setup/allowance errors and open the wizard when relevant. */
+  function handleSetupError(r: Response, d: { detail?: unknown }) {
+    if (r.status === 402 && (d?.detail as { reason?: string } | undefined)?.reason === 'free_limit') {
+      const msg = (d?.detail as { message?: string } | undefined)?.message ?? 'Free allowance used up — add your own API key'
+      notify(msg, 'error')
+      onNeedSetup?.()
+      return true
+    }
+    if (r.status === 503) {
+      notify(typeof d?.detail === 'string' ? d.detail : 'AI provider not available', 'error')
+      onNeedSetup?.()
+      return true
+    }
+    return false
+  }
 
   async function generatePlan() {
     setPlanning(true)
@@ -26,7 +68,9 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ style }),
       })
-      const d = await r.json()
+      const d = await r.json().catch(() => ({}))
+      if (handleSetupError(r, d)) return
+      if (!r.ok) { notify('Plan generation failed', 'error'); return }
       setPlan(d.plan)
       notify('Plan generated', 'success')
       await onRefresh()
@@ -38,12 +82,16 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
     if (plan.length === 0) { notify('Generate a plan first', 'error'); return }
     setGenerating(true)
     try {
-      await fetch(`${API}/api/applications/${app.id}/generate`, {
+      const r = await fetch(`${API}/api/applications/${app.id}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ style, plan }),
       })
+      const d = await r.json().catch(() => ({}))
+      if (handleSetupError(r, d)) return
+      if (!r.ok) { notify('Generation failed', 'error'); return }
       notify('Cover letter generated!', 'success')
+      scrollAfterGenerate.current = true
       await onRefresh()
     } catch { notify('Generation failed', 'error') }
     finally { setGenerating(false) }
@@ -58,7 +106,9 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedback: refineFeedback, style }),
       })
-      const d = await r.json()
+      const d = await r.json().catch(() => ({}))
+      if (handleSetupError(r, d)) return
+      if (!r.ok) { notify('Refinement failed', 'error'); return }
       setChangesSummary(d.changesSummary || '')
       setRefineFeedback('')
       setShowRefine(false)
@@ -92,6 +142,8 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
   }
 
   const hasAnalysis = !!app.details?.suitability
+  // "Add your key" state: the account is on the free allowance and it is used up.
+  const needKey = isUsingFreeAllowance(settings) && freeLettersExhausted(settings)
 
   return (
     <div className="flex flex-col gap-16 fade-in">
@@ -116,12 +168,20 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
                 ))}
               </select>
             </div>
-            <button className="btn btn-secondary" onClick={generatePlan} disabled={!hasAnalysis || planning}>
-              {planning ? <><div className="spinner" />Planning…</> : <><ClipboardListIcon size={14} />Generate Plan</>}
-            </button>
-            <button className="btn btn-primary" onClick={generate} disabled={!hasAnalysis || plan.length === 0 || generating}>
-              {generating ? <><div className="spinner" />Generating…</> : <><SparklesIcon size={14} />Generate Letter</>}
-            </button>
+            {needKey ? (
+              <button className="btn btn-warning" onClick={() => onNeedSetup?.()}>
+                <SparklesIcon size={14} />Add API key to generate
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-secondary" onClick={generatePlan} disabled={!hasAnalysis || planning}>
+                  {planning ? <><div className="spinner" />Planning…</> : <><ClipboardListIcon size={14} />Generate Plan</>}
+                </button>
+                <button className="btn btn-primary" onClick={generate} disabled={!hasAnalysis || plan.length === 0 || generating}>
+                  {generating ? <><div className="spinner" />Generating…</> : <><SparklesIcon size={14} />Generate Letter</>}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -156,7 +216,7 @@ export function CoverLetterTab({ app, notify, onRefresh }: { app: AppDetail; not
 
       {/* Cover letter view */}
       {app.cover_letter && (
-        <div className="card fade-in">
+        <div className="card fade-in" ref={letterCardRef} id="generated-cover-letter">
           <div className="card-header">
             <ShieldCheckIcon size={15} color="var(--success)" />
             <span className="card-title">Generated Cover Letter</span>
