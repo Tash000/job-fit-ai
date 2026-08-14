@@ -5,7 +5,7 @@ import {
   BookmarkIcon, BookmarkCheckIcon, AlertTriangleIcon, ArchiveIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
-import type { AppItem, Notify } from '../lib/types'
+import type { AppItem, Notify, Settings } from '../lib/types'
 import { scoreClass, statusBadge, appliedBadge } from '../lib/types'
 import { fmtDay } from '../lib/dates'
 import { ApplicationDetail } from './app-detail/ApplicationDetail'
@@ -27,7 +27,9 @@ function SmartPasteModal({
   notify: Notify
 }) {
   const [raw, setRaw] = useState('')
+  const [url, setUrl] = useState('')
   const [extracting, setExtracting] = useState(false)
+  const [scraping, setScraping] = useState(false)
 
   async function extract() {
     if (!raw.trim()) { notify('Paste some text first', 'error'); return }
@@ -39,11 +41,31 @@ function SmartPasteModal({
         body: JSON.stringify({ raw_text: raw }),
       })
       const d = await r.json()
+      if (!r.ok) { notify(typeof d?.detail === 'string' ? d.detail : 'Extraction failed', 'error'); return }
       onExtracted(d)
       onClose()
       notify('Job details extracted by AI', 'success')
     } catch { notify('Extraction failed', 'error') }
     finally { setExtracting(false) }
+  }
+
+  /** Fetch the page from a URL, then extract fields from the page text. */
+  async function scrape() {
+    if (!url.trim()) { notify('Enter a job posting URL', 'error'); return }
+    setScraping(true)
+    try {
+      const r = await fetch(`${API}/api/jobs/scrape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      })
+      const d = await r.json()
+      if (!r.ok) { notify(typeof d?.detail === 'string' ? d.detail : 'Could not scrape that URL', 'error'); return }
+      onExtracted(d)
+      onClose()
+      notify('Job details scraped from URL', 'success')
+    } catch { notify('Scraping failed — try pasting the text instead', 'error') }
+    finally { setScraping(false) }
   }
 
   return (
@@ -58,21 +80,47 @@ function SmartPasteModal({
         </div>
         <div className="card-body flex flex-col gap-12">
           <p className="text-sm text-secondary">
-            Paste the <strong>full job posting</strong> — from LinkedIn, university site, email, anywhere.
-            AI will extract the company, position, location, and clean description automatically.
+            Paste the <strong>full job posting</strong> — or just its <strong>URL</strong>. Either way
+            the company, position, location, and clean description are filled automatically.
           </p>
+
+          {/* URL scrape option */}
+          <div className="form-group">
+            <label className="form-label">Scrape from URL</label>
+            <div className="flex gap-8">
+              <input
+                className="form-input flex-1"
+                type="url"
+                placeholder="https://…/job-posting"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !scraping) void scrape() }}
+              />
+              <button className="btn btn-secondary" onClick={scrape} disabled={scraping}>
+                {scraping ? <><div className="spinner" />Fetching…</> : <><SparklesIcon size={14} />Fetch & Fill</>}
+              </button>
+            </div>
+            <span className="form-hint">Works for public job pages (LinkedIn, company sites, university boards). Login-walled pages may fail — paste the text instead.</span>
+          </div>
+
+          <div className="flex items-center gap-8" style={{ margin: '4px 0' }}>
+            <span className="flex-1" style={{ height: 1, background: 'var(--border)' }} />
+            <span className="text-xs text-muted">or paste the text</span>
+            <span className="flex-1" style={{ height: 1, background: 'var(--border)' }} />
+          </div>
+
           <div className="form-group">
             <label className="form-label">Raw Job Posting Text</label>
             <textarea
               className="form-textarea"
-              style={{ minHeight: 240 }}
+              style={{ minHeight: 200 }}
               placeholder="Paste the entire job posting here — the more text, the better the extraction…"
               value={raw}
               onChange={e => setRaw(e.target.value)}
             />
           </div>
           <div className="flex gap-8">
-            <button className="btn btn-primary flex-1" onClick={extract} disabled={extracting}>
+            <button className="btn btn-primary flex-1" onClick={extract} disabled={extracting || scraping}>
               {extracting
                 ? <><div className="spinner" />Extracting with AI…</>
                 : <><SparklesIcon size={14} />Extract & Fill</>}
@@ -188,11 +236,15 @@ interface ApplicationsViewProps {
   newToken?: number
   /** Increment to open the Smart Paste modal directly (dashboard shortcut). */
   pasteToken?: number
+  /** Open the "set up your account" wizard (missing key / free tier used up). */
+  onNeedSetup?: () => void
+  /** Account settings (setup state + free allowance) for button states. */
+  settings?: Settings | null
 }
 
 type Filter = 'all' | 'applied' | 'bookmarked'
 
-export function ApplicationsView({ notify, focusId, newToken, pasteToken }: ApplicationsViewProps) {
+export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeedSetup, settings }: ApplicationsViewProps) {
   const [apps, setApps] = useState<AppItem[]>([])
   const [selected, setSelected] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
@@ -340,7 +392,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken }: Appl
                 <ClipboardListIcon size={16} color="var(--accent-light)" />
                 <span className="card-title">New Application</span>
                 <button className="btn btn-secondary btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setShowPaste(true)}>
-                  <WandIcon size={13} />AI Fill from Job Post
+                  <WandIcon size={13} />AI Fill from Job Post / URL
                 </button>
               </div>
               <div className="card-body flex flex-col gap-10">
@@ -433,7 +485,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken }: Appl
         {/* ── Right panel: detail ── */}
         <div>
           {selected
-            ? <ApplicationDetail id={selected} notify={notify} onRefreshList={load} onDuplicate={setDup} />
+            ? <ApplicationDetail id={selected} notify={notify} onRefreshList={load} onDuplicate={setDup} onNeedSetup={onNeedSetup} settings={settings} />
             : (
               <div className="card" style={{ minHeight: 400 }}>
                 <div className="empty-state" style={{ minHeight: 400 }}>

@@ -4,8 +4,8 @@ import {
   CheckCircleIcon, BookmarkIcon, BookmarkCheckIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../../lib/api'
-import type { AppDetail, Notify } from '../../lib/types'
-import { statusBadge, appliedBadge } from '../../lib/types'
+import type { AppDetail, Notify, Settings } from '../../lib/types'
+import { statusBadge, appliedBadge, freeAnalysesExhausted, isUsingFreeAllowance } from '../../lib/types'
 import { fmtDateTime } from '../../lib/dates'
 import { ScoreRing, LoadingBlock } from '../../components/ui'
 import { AnalysisTab } from './AnalysisTab'
@@ -26,13 +26,17 @@ export interface DuplicateInfo {
  * and four tabbed views (Analysis, ATS, Research, Cover Letter).
  */
 export function ApplicationDetail({
-  id, notify, onRefreshList, onDuplicate,
+  id, notify, onRefreshList, onDuplicate, onNeedSetup, settings,
 }: {
   id: number
   notify: Notify
   onRefreshList: () => void
   /** Called when analyzing reveals this job duplicates an existing one. */
   onDuplicate?: (dup: DuplicateInfo) => void
+  /** Open the setup wizard (missing key / free allowance used up). */
+  onNeedSetup?: () => void
+  /** Account settings for setup/allowance-aware button states. */
+  settings?: Settings | null
 }) {
   const [app, setApp] = useState<AppDetail | null>(null)
   const [tab, setTab] = useState<DetailTab>('analysis')
@@ -55,6 +59,21 @@ export function ApplicationDetail({
       const d = await r.json().catch(() => ({}))
       if (r.status === 409 && d?.detail?.reason === 'duplicate') {
         onDuplicate?.({ id: d.detail.existing_id, company: d.detail.existing_company, position: d.detail.existing_position })
+        return
+      }
+      if (r.status === 402 && d?.detail?.reason === 'free_limit') {
+        notify(d.detail.message ?? 'Free allowance used up — add your own API key', 'error')
+        onNeedSetup?.()
+        return
+      }
+      if (r.status === 400 && d?.detail?.reason === 'no_resume') {
+        notify(d.detail.message ?? 'Upload your resume first', 'error')
+        onNeedSetup?.()
+        return
+      }
+      if (r.status === 503) {
+        notify(typeof d?.detail === 'string' ? d.detail : 'AI provider not available', 'error')
+        onNeedSetup?.()
         return
       }
       if (!r.ok) { notify('Analysis failed', 'error'); return }
@@ -80,6 +99,8 @@ export function ApplicationDetail({
 
   const hasAnalysis = !!app.details?.suitability
   const hasCL = !!app.cover_letter
+  // "Add your key" state: the account is on the free allowance and it is used up.
+  const needKey = isUsingFreeAllowance(settings) && freeAnalysesExhausted(settings)
 
   return (
     <div className="flex flex-col gap-16 fade-in">
@@ -134,13 +155,23 @@ export function ApplicationDetail({
             </div>
 
             {hasAnalysis && <ScoreRing value={app.match_score} size={80} />}
-            <button
-              className={`btn ${analyzing ? 'btn-ghost' : 'btn-primary'}`}
-              onClick={analyze}
-              disabled={analyzing}
-            >
-              {analyzing ? <><div className="spinner" />Analyzing…</> : <><ZapIcon size={15} />Analyze Job</>}
-            </button>
+            {needKey ? (
+              <button
+                className="btn btn-warning"
+                onClick={() => onNeedSetup?.()}
+                title="Free analyses used — add your own Gemini API key to continue"
+              >
+                <ZapIcon size={15} />Add API key to analyze
+              </button>
+            ) : (
+              <button
+                className={`btn ${analyzing ? 'btn-ghost' : 'btn-primary'}`}
+                onClick={analyze}
+                disabled={analyzing}
+              >
+                {analyzing ? <><div className="spinner" />Analyzing…</> : <><ZapIcon size={15} />Analyze Job</>}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -168,7 +199,7 @@ export function ApplicationDetail({
       {tab === 'analysis' && <AnalysisTab app={app} />}
       {tab === 'ats' && <ATSTab app={app} />}
       {tab === 'research' && <ResearchTab app={app} />}
-      {tab === 'coverletter' && <CoverLetterTab app={app} notify={notify} onRefresh={loadApp} />}
+      {tab === 'coverletter' && <CoverLetterTab app={app} notify={notify} onRefresh={loadApp} onNeedSetup={onNeedSetup} settings={settings} />}
     </div>
   )
 }

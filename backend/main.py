@@ -34,6 +34,8 @@ from database import (
     DEFAULT_GEMINI_MODELS,
     DEFAULT_NIM_MODELS,
     DEFAULT_TONE,
+    FREE_ANALYSES_LIMIT,
+    FREE_LETTERS_LIMIT,
     MAX_ANALYSES_PER_USER,
     MAX_RESUMES_PER_USER,
     RESUME_NAME_MAX,
@@ -42,7 +44,8 @@ from database import (
 from security import KeyCipher, current_user_id
 from services.ats_optimizer import calculate_ats_score, suggest_unused_projects
 from services.exporter import export_docx, export_latex, export_pdf, export_txt
-from services.generator import CopilotGenerator
+from services.generator import CopilotGenerator, NoProviderError
+from services.job_scraper import scrape_url
 from services.parser import parse_pdf
 from services.research_matcher import match_research_profile
 
@@ -136,6 +139,10 @@ class ApplicationPlanRequest(BaseModel):
 
 class JobExtractRequest(BaseModel):
     raw_text: str
+
+
+class JobScrapeRequest(BaseModel):
+    url: str
 
 
 class CoverLetterRefineRequest(BaseModel):
@@ -334,6 +341,10 @@ def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
         except InvalidToken:
             nim_preview.append({"index": i, "masked": "••••••••"})
 
+    has_own_key = bool(_decrypt_key_list(row.gemini_keys_enc)) or bool(
+        _decrypt_key_list(row.nim_keys_enc)
+    ) or bool(row.ollama_enabled)
+
     return {
         "gemini_models": row.gemini_models or DEFAULT_GEMINI_MODELS,
         "nim_models": row.nim_models or DEFAULT_NIM_MODELS,
@@ -341,11 +352,21 @@ def settings_to_public(row: db.UserSettings) -> Dict[str, Any]:
         "ollama_enabled": bool(row.ollama_enabled),
         "ollama_base_url": row.ollama_base_url or "http://localhost:11434",
         "ollama_model": row.ollama_model or "llama3",
-    "active_provider": row.active_provider or "gemini",
-    "forbidden_phrases": row.forbidden_phrases or [],
-    "tone_settings": row.tone_settings or {},
-    "admin_emails": row.admin_emails or [],
-    "keyInfo": {
+        "active_provider": row.active_provider or "gemini",
+        "forbidden_phrases": row.forbidden_phrases or [],
+        "tone_settings": row.tone_settings or {},
+        "admin_emails": row.admin_emails or [],
+        # True when the account holds its OWN provider key (no platform-key
+        # dependency). Drives the "add your key" onboarding popup.
+        "has_own_key": has_own_key,
+        # Free allowance counters for accounts without their own key.
+        "freeUsage": {
+            "analysesUsed": int(row.free_analyses_used or 0),
+            "analysesLimit": FREE_ANALYSES_LIMIT,
+            "lettersUsed": int(row.free_letters_used or 0),
+            "lettersLimit": FREE_LETTERS_LIMIT,
+        },
+        "keyInfo": {
             "gemini": gemini_preview,
             "nim": nim_preview,
         },
@@ -372,6 +393,82 @@ def _generator_from_row(row: db.UserSettings) -> CopilotGenerator:
 def build_generator_for(user_id: str, db_session: Session) -> CopilotGenerator:
     """Build an LLM router using the user's decrypted keys (plus server defaults)."""
     return _generator_from_row(_get_or_create_settings(db_session, user_id))
+
+
+# ── Free tier & setup gates ───────────────────────────────────────────────────
+#
+# Accounts WITHOUT their own provider key get a small free allowance on the
+# platform key (2 analyses + 1 cover letter). Once that is used up, every AI
+# action requires the user's own key. Admins bypass everything.
+
+
+def _user_has_own_key(row: db.UserSettings) -> bool:
+    """True when the account configured its own provider key (any provider)."""
+    return bool(_decrypt_key_list(row.gemini_keys_enc)) or bool(
+        _decrypt_key_list(row.nim_keys_enc)
+    ) or bool(row.ollama_enabled)
+
+
+def _free_allowance_check(
+    request: Request,
+    user_id: str,
+    db_session: Session,
+    kind: str,
+) -> db.UserSettings:
+    """Gate AI actions for accounts without their own key.
+
+    ``kind`` is ``"analyze"`` or ``"letter"``. Raises 402 when the free
+    allowance is exhausted; returns the settings row otherwise. Admins and
+    key-holders always pass.
+    """
+    row = _get_or_create_settings(db_session, user_id)
+    if _is_admin_user(request, user_id, db_session) or _user_has_own_key(row):
+        return row
+
+    used, limit = (
+        (int(row.free_analyses_used or 0), FREE_ANALYSES_LIMIT) if kind == "analyze"
+        else (int(row.free_letters_used or 0), FREE_LETTERS_LIMIT)
+    )
+    if used >= limit:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "reason": "free_limit",
+                "message": (
+                    f"You've used your free allowance ({limit} "
+                    + ("job analyses" if kind == "analyze" else "cover letter")
+                    + "). Add your own Google Gemini API key in Settings to keep going."
+                ),
+                "used": used,
+                "limit": limit,
+            },
+        )
+    return row
+
+
+def _consume_free_allowance(row: db.UserSettings, kind: str) -> None:
+    """Increment the free-tier counter AFTER a successful AI action."""
+    if kind == "analyze":
+        row.free_analyses_used = int(row.free_analyses_used or 0) + 1
+    else:
+        row.free_letters_used = int(row.free_letters_used or 0) + 1
+
+
+def _no_provider_http(exc: NoProviderError) -> HTTPException:
+    """Convert a missing/broken-provider error into a friendly 503."""
+    return HTTPException(status_code=503, detail=str(exc))
+
+
+def _require_resume(profile_row: db.Profile) -> None:
+    """Setup gate: analysis requires the user's OWN resume first."""
+    if not (profile_row.resume_text or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "reason": "no_resume",
+                "message": "Upload your resume first — analyses are based on your own profile. Go to Resume & Profile and upload a PDF or paste your resume text.",
+            },
+        )
 
 
 def _get_owned_application(db_session: Session, user_id: str, app_id: int) -> db.Application:
@@ -694,7 +791,10 @@ async def upload_resume(
     extracted_text = parse_pdf(file_bytes)
 
     generator = build_generator_for(user_id, db_session)
-    parsed_profile = _normalize_profile(generator.parse_resume(extracted_text))
+    try:
+        parsed_profile = _normalize_profile(generator.parse_resume(extracted_text))
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
 
     _save_profile(db_session, user_id, extracted_text, parsed_profile)
     return {"status": "success", "resume_text": extracted_text, "parsed_profile": parsed_profile}
@@ -713,7 +813,10 @@ def parse_resume_text(
 
     _check_generation_limit(request, user_id, db_session)
     generator = build_generator_for(user_id, db_session)
-    parsed_profile = _normalize_profile(generator.parse_resume(raw_text))
+    try:
+        parsed_profile = _normalize_profile(generator.parse_resume(raw_text))
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
     _save_profile(db_session, user_id, raw_text, parsed_profile)
     return {"status": "success", "parsed_profile": parsed_profile}
 
@@ -730,7 +833,36 @@ def extract_job_from_text(
 
     _check_generation_limit(request, user_id, db_session)
     generator = build_generator_for(user_id, db_session)
+    # extract_job_details degrades gracefully to a heuristic (no-LLM) parse, so
+    # Smart Paste keeps working before a provider key is configured.
     return generator.extract_job_details(payload.raw_text)
+
+
+@app.post("/api/jobs/scrape")
+def scrape_job_url(
+    payload: JobScrapeRequest,
+    request: Request,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Fetch a job-posting URL, extract its text, and fill company/position/location."""
+    _check_generation_limit(request, user_id, db_session)
+
+    try:
+        scraped = scrape_url(payload.url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    # AI extraction when a provider is available, otherwise the heuristic parse
+    # (extract_job_details degrades gracefully and never fails without a key).
+    generator = build_generator_for(user_id, db_session)
+    meta = generator.extract_job_details(scraped["text"])
+
+    # The scraped body is the description; keep title/url as useful context.
+    meta["description"] = scraped["text"]
+    meta["source_url"] = payload.url.strip()
+    meta["title"] = scraped["title"]
+    return meta
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -855,21 +987,6 @@ def get_application(app_id: int, user_id: str = Depends(authed_user), db_session
     return _app_detail(row)
 
 
-# Mock professor papers — replace with a real publication API (e.g. OpenAlex) later.
-_SEED_PROFESSOR_PAPERS = [
-    {
-        "title": "Vision-guided gaze control for humanoid robots in social settings",
-        "abstract": "This paper presents a latency-reduced active gaze control loop for a humanoid robotic head, achieving human-like facial visual responses.",
-        "keywords": "ROS2, Gaze control, Face tracking, Humanoid Head",
-    },
-    {
-        "title": "Deep learning models for real-time expression detection",
-        "abstract": "We evaluate lightweight convolution networks for high-frequency micro-expression classification on social humanoid devices.",
-        "keywords": "Deep learning, facial gesture, camera, expression",
-    },
-]
-
-
 @app.post("/api/applications/{app_id}/analyze")
 def analyze_application(app_id: int, request: Request, user_id: str = Depends(authed_user), db_session: Session = Depends(db.get_db)):
     row = _get_owned_application(db_session, user_id, app_id)
@@ -884,13 +1001,25 @@ def analyze_application(app_id: int, request: Request, user_id: str = Depends(au
 
     _check_generation_limit(request, user_id, db_session)
 
+    # Setup gate: the user's OWN resume must exist — never analyze against
+    # another account's (or empty) profile data.
     profile_row = _get_or_create_profile(db_session, user_id)
+    _require_resume(profile_row)
     profile_data = {"resume_text": profile_row.resume_text or "", "parsed_profile": profile_row.parsed_profile or {}}
     job_desc = row.description or ""
+    if not job_desc.strip():
+        raise HTTPException(status_code=400, detail="This job has no description to analyze. Paste the job posting first.")
+
+    # Free-tier allowance (no-own-key accounts: 2 analyses on the platform key).
+    settings_row = _free_allowance_check(request, user_id, db_session, "analyze")
+    using_free_allowance = not _is_admin_user(request, user_id, db_session) and not _user_has_own_key(settings_row)
 
     generator = build_generator_for(user_id, db_session)
-    job_analysis = generator.analyze_job(job_desc)
-    suit_gap = generator.analyze_suitability(profile_data["parsed_profile"], job_analysis)
+    try:
+        job_analysis = generator.analyze_job(job_desc)
+        suit_gap = generator.analyze_suitability(profile_data["parsed_profile"], job_analysis)
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
 
     ats_results = calculate_ats_score(profile_data["resume_text"], job_desc)
     ats_results["unusedProjects"] = suggest_unused_projects(
@@ -906,12 +1035,16 @@ def analyze_application(app_id: int, request: Request, user_id: str = Depends(au
     }
     overall_match = details["suitability"].get("overallMatch", 85)
 
-    research_match = match_research_profile(
-        profile_data["parsed_profile"].get("publications", []),
-        profile_data["parsed_profile"].get("projects", []),
-        _SEED_PROFESSOR_PAPERS,
-    )
-    details["researchMatcher"] = research_match
+    # Research matching is ONLY computed from the candidate's real publications
+    # and projects — no seeded/fake professor papers are ever injected. When the
+    # candidate has no research output, the tab simply shows "no match yet".
+    pubs = profile_data["parsed_profile"].get("publications", [])
+    projects = profile_data["parsed_profile"].get("projects", [])
+    if pubs or projects:
+        research_topics = (job_analysis or {}).get("researchTopics") or []
+        job_papers = [{"title": t, "abstract": t, "keywords": t} for t in research_topics if str(t).strip()]
+        if job_papers:
+            details["researchMatcher"] = match_research_profile(pubs, projects, job_papers)
 
     row.details = details
     row.resume_suggestions = ats_results
@@ -919,6 +1052,9 @@ def analyze_application(app_id: int, request: Request, user_id: str = Depends(au
     row.status = "Analyzed"
     row.analyzed_at = datetime.utcnow()
     db_session.commit()
+    if using_free_allowance:
+        _consume_free_allowance(settings_row, "analyze")
+        db_session.commit()
     _log_activity(db_session, user_id, "analyze", f"{row.company} — {row.position} ({int(overall_match)}%)")
     return {"status": "success", "match_score": overall_match}
 
@@ -936,13 +1072,20 @@ def plan_application(
         raise HTTPException(status_code=400, detail="Run analysis first")
 
     _check_generation_limit(request, user_id, db_session)
+    # Planning is a prerequisite of generation — gate it on the same letter
+    # allowance so no-key accounts can't loop the platform key with plans.
+    _free_allowance_check(request, user_id, db_session, "letter")
+
     generator = build_generator_for(user_id, db_session)
     style = (payload.style if payload else "industrial") or "industrial"
-    plan = generator.plan_cover_letter(
-        row.details.get("jobAnalysis", {}),
-        row.details.get("suitability", {}),
-        style=style,
-    )
+    try:
+        plan = generator.plan_cover_letter(
+            row.details.get("jobAnalysis", {}),
+            row.details.get("suitability", {}),
+            style=style,
+        )
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
     row.cover_letter_plan = plan
     db_session.commit()
     _log_activity(db_session, user_id, "plan", f"{row.company} — {row.position}")
@@ -963,17 +1106,27 @@ def generate_application_materials(
 
     _check_generation_limit(request, user_id, db_session)
     profile_row = _get_or_create_profile(db_session, user_id)
-    settings_row = _get_or_create_settings(db_session, user_id)
-    settings = settings_to_public(settings_row)
+    _require_resume(profile_row)
 
+    settings_row = _get_or_create_settings(db_session, user_id)
+    # Free-tier allowance (no-own-key accounts: 1 cover letter on the platform key).
+    is_admin = _is_admin_user(request, user_id, db_session)
+    using_free_allowance = not is_admin and not _user_has_own_key(settings_row)
+    if using_free_allowance:
+        _free_allowance_check(request, user_id, db_session, "letter")
+
+    settings = settings_to_public(settings_row)
     generator = _generator_from_row(settings_row)
-    results = generator.generate_cover_letter(
-        profile_row.parsed_profile or {},
-        row.details.get("jobAnalysis", {}),
-        payload.plan or [],
-        settings,
-        style=payload.style or "industrial",
-    )
+    try:
+        results = generator.generate_cover_letter(
+            profile_row.parsed_profile or {},
+            row.details.get("jobAnalysis", {}),
+            payload.plan or [],
+            settings,
+            style=payload.style or "industrial",
+        )
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
 
     row.cover_letter = results["coverLetter"]
     row.audit_trail = results.get("auditTrail", [])
@@ -981,6 +1134,9 @@ def generate_application_materials(
     row.cover_letter_plan = payload.plan
     row.status = "Completed"
     db_session.commit()
+    if using_free_allowance:
+        _consume_free_allowance(settings_row, "letter")
+        db_session.commit()
     _log_activity(db_session, user_id, "generate", f"{row.company} — {row.position}")
     return {"status": "success"}
 
@@ -1063,22 +1219,37 @@ def refine_application_letter(
 
     _check_generation_limit(request, user_id, db_session)
     profile_row = _get_or_create_profile(db_session, user_id)
-    settings = settings_to_public(_get_or_create_settings(db_session, user_id))
+    _require_resume(profile_row)
 
+    settings_row = _get_or_create_settings(db_session, user_id)
+    # Refining re-runs the LLM — gate it on the same letter allowance for
+    # accounts that rely on the platform key (so they can't refine forever).
+    is_admin = _is_admin_user(request, user_id, db_session)
+    using_free_allowance = not is_admin and not _user_has_own_key(settings_row)
+    if using_free_allowance:
+        _free_allowance_check(request, user_id, db_session, "letter")
+
+    settings = settings_to_public(settings_row)
     generator = build_generator_for(user_id, db_session)
-    results = generator.refine_cover_letter(
-        current_letter=row.cover_letter,
-        user_feedback=payload.feedback,
-        profile=profile_row.parsed_profile or {},
-        job_analysis=(row.details or {}).get("jobAnalysis", {}),
-        settings=settings,
-        style=payload.style or "industrial",
-    )
+    try:
+        results = generator.refine_cover_letter(
+            current_letter=row.cover_letter,
+            user_feedback=payload.feedback,
+            profile=profile_row.parsed_profile or {},
+            job_analysis=(row.details or {}).get("jobAnalysis", {}),
+            settings=settings,
+            style=payload.style or "industrial",
+        )
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
 
     row.cover_letter = results["coverLetter"]
     row.audit_trail = results.get("auditTrail", [])
     row.feedback = results.get("feedback", {})
     db_session.commit()
+    if using_free_allowance:
+        _consume_free_allowance(settings_row, "letter")
+        db_session.commit()
     _log_activity(db_session, user_id, "refine", f"{row.company} — {row.position}")
 
     return {
@@ -1186,7 +1357,10 @@ async def upload_resume_pdf(
     extracted_text = parse_pdf(file_bytes)
 
     generator = build_generator_for(user_id, db_session)
-    parsed_profile = generator.parse_resume(extracted_text) or {}
+    try:
+        parsed_profile = generator.parse_resume(extracted_text) or {}
+    except NoProviderError as exc:
+        raise _no_provider_http(exc)
     for key in ["name", "email", "phone", "career_goals"]:
         if not parsed_profile.get(key):
             parsed_profile[key] = ""

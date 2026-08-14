@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import {
   BriefcaseIcon, PlusIcon, ClipboardPasteIcon, ChevronRightIcon,
   TargetIcon, TrendingUpIcon, ZapIcon, UserIcon, CpuIcon,
-  SparklesIcon, ArrowRightIcon, LayoutDashboardIcon,
+  SparklesIcon, ArrowRightIcon, LayoutDashboardIcon, CheckCircleIcon, KeyIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Profile, Settings } from '../lib/types'
-import { scoreClass, statusBadge, isProviderActive } from '../lib/types'
+import { scoreClass, statusBadge, isProviderActive, isUsingFreeAllowance } from '../lib/types'
 import { LoadingBlock } from '../components/ui'
 
 interface DashboardProps {
@@ -73,6 +73,34 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
     { label: 'Avg. match', value: avgMatch ? `${avgMatch}%` : '—', icon: TrendingUpIcon, tint: 'purple' },
   ]
 
+  // Setup checklist: visible until the user adds a key AND uploads a resume.
+  const hasOwnKey = !!settings?.has_own_key || !!settings?.is_admin
+  const hasResume = !!(profile?.resume_text ?? '').trim()
+  const setupSteps = [
+    {
+      title: 'Add your Gemini API key',
+      desc: 'Your own key powers every AI feature — get a free one from Google AI Studio.',
+      actionLabel: 'Add key',
+      action: () => onGoTo('settings'),
+      done: hasOwnKey,
+    },
+    {
+      title: 'Upload your resume',
+      desc: 'AI parses your skills, experience and projects into your private profile.',
+      actionLabel: 'Upload',
+      action: () => onGoTo('profile'),
+      done: hasResume,
+    },
+    {
+      title: 'Analyze your first job',
+      desc: 'Paste a posting or grab it from a URL, then run the AI analysis.',
+      actionLabel: 'Add a job',
+      action: onNewApp,
+      done: apps.length > 0,
+    },
+  ].filter(s => !s.done)
+  const doneSteps = 3 - setupSteps.length
+
   return (
     <div className="flex flex-col gap-20 fade-in">
       {/* Greeting */}
@@ -102,6 +130,44 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
           </div>
         ))}
       </div>
+
+      {/* Get-Started checklist — shown until the account is set up */}
+      {setupSteps.length > 0 && (
+        <div className="card card-accent fade-in">
+          <div className="card-header">
+            <CheckCircleIcon size={15} color="var(--accent-light)" />
+            <span className="card-title">Get started — {doneSteps}/{setupSteps.length} done</span>
+          </div>
+          <div className="card-body">
+            <div className="flex flex-col gap-8">
+              {setupSteps.map((s, i) => (
+                <div key={i} className="setup-step" style={{ opacity: s.done ? 0.65 : 1 }}>
+                  <div className={`setup-step-icon ${s.done ? 'done' : ''}`}>
+                    {s.done ? <CheckCircleIcon size={16} /> : <KeyIcon size={16} />}
+                  </div>
+                  <div className="flex-1" style={{ minWidth: 0 }}>
+                    <div className="form-label" style={{ marginBottom: 1 }}>{s.title}</div>
+                    {!s.done && <p className="text-xs text-muted" style={{ margin: 0 }}>{s.desc}</p>}
+                  </div>
+                  {!s.done && (
+                    <button className="btn btn-secondary btn-sm" onClick={s.action} style={{ flexShrink: 0 }}>
+                      {s.actionLabel} <ArrowRightIcon size={12} />
+                    </button>
+                  )}
+                  {s.done && <span className="text-xs" style={{ color: 'var(--success)' }}>Done</span>}
+                </div>
+              ))}
+            </div>
+            {isUsingFreeAllowance(settings) && settings?.freeUsage && (
+              <p className="text-xs text-muted" style={{ marginTop: 10 }}>
+                Free allowance: <strong>{Math.max(0, (settings.freeUsage.analysesLimit ?? 2) - (settings.freeUsage.analysesUsed ?? 0))}</strong>{' '}
+                job analyses · <strong>{Math.max(0, (settings.freeUsage.lettersLimit ?? 1) - (settings.freeUsage.lettersUsed ?? 0))}</strong>{' '}
+                cover letter left on the shared key. Add your own Gemini key in Settings for unlimited use.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="dash-grid">
         {/* Recent applications */}
