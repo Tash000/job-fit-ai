@@ -3,7 +3,7 @@ import {
   BriefcaseIcon, PlusIcon, ClipboardPasteIcon, ChevronRightIcon,
   TargetIcon, TrendingUpIcon, ZapIcon, UserIcon, CpuIcon,
   SparklesIcon, ArrowRightIcon, LayoutDashboardIcon, CheckCircleIcon, KeyIcon,
-  FileTextIcon,
+  FileTextIcon, ExternalLinkIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Profile, Settings } from '../lib/types'
@@ -201,18 +201,39 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
             ) : (
               <div className="flex flex-col">
                 {recent.map(a => (
-                  <button key={a.id} className="dash-app-row" onClick={() => onOpenApp(a.id)}>
-                    <div className="app-company-logo">{a.company[0]}</div>
-                    <div className="app-info" style={{ flex: 1, minWidth: 0 }}>
-                      <div className="app-company">{a.company}</div>
-                      <div className="app-position">{a.position}</div>
-                    </div>
-                    <span className={statusBadge(a.status)}>{a.status}</span>
-                    <div className={`score-mini ${scoreClass(a.match_score)}`}>
-                      {a.match_score > 0 ? `${a.match_score}` : '–'}
-                    </div>
-                    <ChevronRightIcon size={14} color="var(--text-muted)" />
-                  </button>
+                  <div key={a.id} className="dash-app-row-wrap">
+                    <button className="dash-app-row" onClick={() => onOpenApp(a.id)}>
+                      <div className="app-company-logo">{a.company[0]}</div>
+                      <div className="app-info" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="app-company">{a.company}</div>
+                        <div className="app-position">{a.position}</div>
+                      </div>
+                      <span className={statusBadge(a.status)}>{a.status}</span>
+                      <div className={`score-mini ${scoreClass(a.match_score)}`}>
+                        {a.match_score > 0 ? `${a.match_score}` : '–'}
+                      </div>
+                      <ChevronRightIcon size={14} color="var(--text-muted)" />
+                    </button>
+                    {a.job_url ? (
+                      <a
+                        className="btn btn-ghost btn-sm"
+                        href={a.job_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open the job posting to apply"
+                      >
+                        <ExternalLinkIcon size={13} />Job site
+                      </a>
+                    ) : (
+                      <button
+                        className="btn btn-ghost btn-sm job-site-missing"
+                        title="No job link yet — open to add the posting and apply"
+                        onClick={() => onOpenApp(a.id)}
+                      >
+                        <ExternalLinkIcon size={13} />Job site
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

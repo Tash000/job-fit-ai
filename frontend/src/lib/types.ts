@@ -18,6 +18,8 @@ export interface AppItem {
   follow_up: boolean
   /** Saved for later. */
   bookmarked: boolean
+  /** Original job posting URL — powers the "Job site" apply button. */
+  job_url: string
   /** ISO datetime the job was added. */
   created_at: string
   /** ISO datetime the job was last analyzed (null = not analyzed yet). */

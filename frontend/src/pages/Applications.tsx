@@ -3,6 +3,7 @@ import {
   BriefcaseIcon, PlusIcon, TrashIcon, ClipboardPasteIcon, WandIcon,
   XCircleIcon, SparklesIcon, SaveIcon, ClipboardListIcon, TargetIcon,
   BookmarkIcon, BookmarkCheckIcon, AlertTriangleIcon, ArchiveIcon, ArrowLeftIcon,
+  CheckCircleIcon, CircleIcon, ExternalLinkIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Notify, Settings } from '../lib/types'
@@ -23,11 +24,12 @@ function SmartPasteModal({
   notify,
 }: {
   onClose: () => void
-  onExtracted: (data: { company: string; position: string; location: string; description: string }) => void
+  onExtracted: (data: { company: string; position: string; location: string; description: string; url?: string }) => void
   notify: Notify
 }) {
   const [raw, setRaw] = useState('')
   const [url, setUrl] = useState('')
+  const [jobUrl, setJobUrl] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [scraping, setScraping] = useState(false)
 
@@ -42,7 +44,7 @@ function SmartPasteModal({
       })
       const d = await r.json()
       if (!r.ok) { notify(typeof d?.detail === 'string' ? d.detail : 'Extraction failed', 'error'); return }
-      onExtracted(d)
+      onExtracted({ ...d, url: jobUrl.trim() || undefined })
       onClose()
       notify('Job details extracted by AI', 'success')
     } catch { notify('Extraction failed', 'error') }
@@ -61,7 +63,7 @@ function SmartPasteModal({
       })
       const d = await r.json()
       if (!r.ok) { notify(typeof d?.detail === 'string' ? d.detail : 'Could not scrape that URL', 'error'); return }
-      onExtracted(d)
+      onExtracted({ ...d, url: d?.source_url || undefined })
       onClose()
       notify('Job details scraped from URL', 'success')
     } catch { notify('Scraping failed — try pasting the text instead', 'error') }
@@ -118,6 +120,17 @@ function SmartPasteModal({
               value={raw}
               onChange={e => setRaw(e.target.value)}
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Job post link <span className="text-xs text-muted">(optional)</span></label>
+            <input
+              className="form-input"
+              type="url"
+              placeholder="https://company.com/careers/… — jump straight back to apply later"
+              value={jobUrl}
+              onChange={e => setJobUrl(e.target.value)}
+            />
+            <span className="form-hint">Saved on the application — a “Job site” button takes you back to the posting to apply.</span>
           </div>
           <div className="flex gap-8">
             <button className="btn btn-primary flex-1" onClick={extract} disabled={extracting || scraping}>
@@ -256,7 +269,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
   const [selected, setSelected] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
   const [showPaste, setShowPaste] = useState(false)
-  const [form, setForm] = useState({ company: '', position: '', location: '', description: '' })
+  const [form, setForm] = useState({ company: '', position: '', location: '', description: '', job_url: '' })
   const [dup, setDup] = useState<{ id: number; company: string; position: string } | null>(null)
   const [limit, setLimit] = useState<{ count: number; max: number; oldest: { id: number; company: string; position: string } | null } | null>(null)
   const [filter, setFilter] = useState<Filter>(initialFilter ?? 'all')
@@ -313,7 +326,7 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
     if (!r.ok) { notify(d?.detail?.message ?? 'Failed to create application', 'error'); return }
     notify(`Created application #${d.id}`, 'success')
     setCreating(false)
-    setForm({ company: '', position: '', location: '', description: '' })
+    setForm({ company: '', position: '', location: '', description: '', job_url: '' })
     await load()
     setSelected(d.id)
   }
@@ -346,7 +359,13 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
         <SmartPasteModal
           onClose={() => setShowPaste(false)}
           onExtracted={d => {
-            setForm(d)
+            setForm({
+              company: d.company ?? '',
+              position: d.position ?? '',
+              location: d.location ?? '',
+              description: d.description ?? '',
+              job_url: d.url ?? '',
+            })
             setCreating(true)
             setShowPaste(false)
           }}
@@ -433,6 +452,16 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
                   <textarea className="form-textarea" placeholder="Paste the full job posting here…" value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ minHeight: 120 }} />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Job Posting URL <span className="text-xs text-muted">(optional)</span></label>
+                  <input
+                    className="form-input"
+                    type="url"
+                    placeholder="https://company.com/careers/… — the “Job site” button takes you back to apply"
+                    value={form.job_url}
+                    onChange={e => setForm(f => ({ ...f, job_url: e.target.value }))}
+                  />
+                </div>
                 <div className="flex gap-8">
                   <button className="btn btn-primary flex-1" onClick={create}><SaveIcon size={14} />Save</button>
                   <button className="btn btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
@@ -474,6 +503,35 @@ export function ApplicationsView({ notify, focusId, newToken, pasteToken, onNeed
                     {a.match_score > 0 ? `${a.match_score}` : '–'}
                   </div>
                   <div className="app-actions">
+                    {/* Jump back to the posting to apply — grayed out until a link is added */}
+                    {a.job_url ? (
+                      <a
+                        className="btn btn-icon btn-sm btn-ghost"
+                        href={a.job_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open the job posting to apply"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <ExternalLinkIcon size={14} />
+                      </a>
+                    ) : (
+                      <button
+                        className="btn btn-icon btn-sm btn-ghost job-site-missing"
+                        title="No job link yet — open to add the posting and apply"
+                        onClick={e => { e.stopPropagation(); setSelected(a.id) }}
+                      >
+                        <ExternalLinkIcon size={14} />
+                      </button>
+                    )}
+                    {/* Mark as applied directly from the tile */}
+                    <button
+                      className={`btn btn-icon btn-sm ${a.applied ? 'btn-success' : 'btn-ghost'}`}
+                      title={a.applied ? 'Applied — click to undo' : 'Mark as applied'}
+                      onClick={e => { e.stopPropagation(); void patchFlags(a.id, { applied: !a.applied }) }}
+                    >
+                      {a.applied ? <CheckCircleIcon size={14} /> : <CircleIcon size={14} />}
+                    </button>
                     {/* Discreet follow-up reminder LED */}
                     <button
                       className={`led-btn ${a.follow_up ? 'led-on' : ''}`}

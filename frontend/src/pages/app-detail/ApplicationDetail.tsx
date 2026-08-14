@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ZapIcon, BarChartIcon, TargetIcon, BookOpenIcon, FileTextIcon,
-  CheckCircleIcon, BookmarkIcon, BookmarkCheckIcon,
+  CheckCircleIcon, BookmarkIcon, BookmarkCheckIcon, ExternalLinkIcon,
+  LinkIcon, PencilIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../../lib/api'
 import type { AppDetail, Notify, Settings } from '../../lib/types'
@@ -42,6 +43,8 @@ export function ApplicationDetail({
   const [tab, setTab] = useState<DetailTab>('analysis')
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
+  const [editingUrl, setEditingUrl] = useState(false)
+  const [urlDraft, setUrlDraft] = useState('')
 
   const loadApp = useCallback(async () => {
     setLoading(true)
@@ -84,14 +87,22 @@ export function ApplicationDetail({
     finally { setAnalyzing(false) }
   }
 
-  /** Update a tracking flag (applied / follow-up / bookmarked) via PATCH. */
-  async function setFlag(patch: { applied?: boolean; follow_up?: boolean; bookmarked?: boolean }) {
+  /** Update a tracking flag (applied / follow-up / bookmarked / job link) via PATCH. */
+  async function setFlag(patch: { applied?: boolean; follow_up?: boolean; bookmarked?: boolean; job_url?: string }) {
     await fetch(`${API}/api/applications/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     })
     await loadApp()
     await onRefreshList()
+  }
+
+  /** Save or clear the job posting link from the inline editor. */
+  async function saveUrl() {
+    const next = urlDraft.trim()
+    await setFlag({ job_url: next })
+    setEditingUrl(false)
+    notify(next ? 'Job link saved' : 'Job link removed', 'success')
   }
 
   if (loading) return <LoadingBlock label="Loading application…" />
@@ -131,6 +142,34 @@ export function ApplicationDetail({
 
             {/* Tracking controls — discreet, per-application */}
             <div className="flex gap-6 items-center">
+              {app.job_url ? (
+                <>
+                  <a
+                    className="btn btn-secondary btn-sm"
+                    href={app.job_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Open the job posting to apply"
+                  >
+                    <ExternalLinkIcon size={13} />Job site
+                  </a>
+                  <button
+                    className="btn btn-ghost btn-icon btn-sm"
+                    title="Edit job link"
+                    onClick={() => { setUrlDraft(app.job_url); setEditingUrl(true) }}
+                  >
+                    <PencilIcon size={14} />
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  title="Add the job posting link so you can jump back and apply"
+                  onClick={() => { setUrlDraft(''); setEditingUrl(true) }}
+                >
+                  <LinkIcon size={13} />Add job link
+                </button>
+              )}
               <button
                 className={`btn btn-sm ${app.applied ? 'btn-success' : 'btn-secondary'}`}
                 onClick={() => void setFlag({ applied: !app.applied })}
@@ -153,6 +192,24 @@ export function ApplicationDetail({
                 {app.bookmarked ? <BookmarkCheckIcon size={15} /> : <BookmarkIcon size={15} />}
               </button>
             </div>
+
+            {/* Inline editor for the job posting link */}
+            {editingUrl && (
+              <div className="flex gap-8 items-center" style={{ flexBasis: '100%' }}>
+                <input
+                  className="form-input flex-1"
+                  type="url"
+                  placeholder="https://company.com/careers/… — leave empty to remove the link"
+                  value={urlDraft}
+                  onChange={e => setUrlDraft(e.target.value)}
+                  autoFocus
+                />
+                <button className="btn btn-primary btn-sm" onClick={() => void saveUrl()}>
+                  Save
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingUrl(false)}>Cancel</button>
+              </div>
+            )}
 
             {hasAnalysis && <ScoreRing value={app.match_score} size={80} />}
             {needKey ? (
