@@ -9,17 +9,23 @@ import { API_BASE as API } from '../lib/api'
 import type { Notify, Settings as SettingsData } from '../lib/types'
 import { LoadingBlock } from '../components/ui'
 import { InstallButton } from '../components/InstallButton'
-import { useAppearance, type Accent, type Theme } from '../lib/theme'
+import { useAppearance, type Accent, type Style, type Theme } from '../lib/theme'
 
 const THEME_OPTIONS: { value: Theme; label: string; icon: LucideIcon }[] = [
-  { value: 'light', label: 'Light', icon: SunIcon },
-  { value: 'dark', label: 'Dark', icon: MoonIcon },
+  { value: 'light', label: 'Paper', icon: SunIcon },
+  { value: 'dark', label: 'Ink', icon: MoonIcon },
   { value: 'system', label: 'System', icon: MonitorIcon },
 ]
 
 const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
-  { value: 'blue', label: 'Blue', swatch: 'swatch-blue' },
-  { value: 'purple', label: 'Purple', swatch: 'swatch-purple' },
+  { value: 'blue', label: 'Vermilion', swatch: 'swatch-blue' },
+  { value: 'purple', label: 'Indigo', swatch: 'swatch-purple' },
+]
+
+const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
+  { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
+  { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
+  { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
 ]
 
 type Provider = 'gemini' | 'nim' | 'ollama'
@@ -140,7 +146,7 @@ export function SettingsView({
   /** Settings already fetched by the app shell — renders instantly. */
   initial?: SettingsData | null
 }) {
-  const { theme, accent, setTheme, setAccent } = useAppearance()
+  const { theme, accent, style, optionalThemes, setTheme, setAccent, setStyle, setOptionalThemes } = useAppearance()
   // Start from the app shell's copy (or cache) so the page is instant, then
   // refresh in the background to stay fresh.
   const [s, setS] = useState<SettingsData | null>(initial ?? null)
@@ -257,19 +263,62 @@ export function SettingsView({
             })}
           </div>
 
-          <div className="settings-section-title">Accent Color</div>
-          <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts.</p>
-          <div className="flex gap-8 flex-wrap">
-            {ACCENTS.map(a => (
-              <button
-                key={a.value}
-                className={`accent-swatch ${accent === a.value ? 'active' : ''}`}
-                onClick={() => setAccent(a.value)}
-              >
-                <span className={`swatch ${a.swatch}`} />{a.label}
-              </button>
-            ))}
+          <div className="settings-section-title" style={{ marginTop: 4 }}>Optional themes</div>
+          <p className="text-xs text-muted">Turn on the optional Beige and Noir styles — each has its own designed light and dark mode. Turn off to keep the classic theme.</p>
+          <div className="optional-row">
+            <span className="optional-label">
+              <strong>Enable optional themes</strong>
+              <small>Beige · warm paper — Noir · deep navy</small>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={optionalThemes}
+              className={`settings-switch${optionalThemes ? ' on' : ''}`}
+              onClick={() => setOptionalThemes(!optionalThemes)}
+            >
+              <span className="settings-switch-knob" />
+            </button>
           </div>
+
+          {optionalThemes && (
+            <div className="settings-section-title">Theme style</div>
+          )}
+          {optionalThemes && (
+            <div className="flex gap-8 flex-wrap">
+              {STYLES.map(st => (
+                <button
+                  key={st.value}
+                  className={`accent-swatch ${style === st.value ? 'active' : ''}`}
+                  onClick={() => setStyle(st.value)}
+                >
+                  <span className={`swatch ${st.swatch}`} />
+                  <span>
+                    {st.label}
+                    <small className="swatch-desc">{st.desc}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(!optionalThemes || style === 'editorial') && (
+            <>
+              <div className="settings-section-title">Accent Color</div>
+              <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts.</p>
+              <div className="flex gap-8 flex-wrap">
+                {ACCENTS.map(a => (
+                  <button
+                    key={a.value}
+                    className={`accent-swatch ${accent === a.value ? 'active' : ''}`}
+                    onClick={() => setAccent(a.value)}
+                  >
+                    <span className={`swatch ${a.swatch}`} />{a.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="settings-section-title">Install App</div>
           <p className="text-xs text-muted">Add Vitralume to your home screen for one-tap launch and offline access.</p>

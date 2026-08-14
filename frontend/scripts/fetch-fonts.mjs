@@ -18,16 +18,14 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = resolve(root, 'public/fonts')
 
 // Must match the families/axes the app actually uses (see --font-* in index.css).
-// All three are variable fonts, so the weights are requested as *ranges*
-// (300..700) rather than a list (300;400;500…). A list makes the API emit one
-// @font-face per weight, each pointing at the same variable file — five
-// identical 61 KiB downloads for DM Sans alone. One range = one file that
-// covers every weight in it.
+// Fraunces and Archivo are variable fonts, so their weights are requested as
+// *ranges* (300..700) rather than a list — one range = one file that covers
+// every weight in it. Space Mono has discrete weights, so it's a list.
 const CSS_URL =
   'https://fonts.googleapis.com/css2' +
-  '?family=DM+Sans:opsz,wght@9..40,300..700' +
-  '&family=Space+Grotesk:wght@400..700' +
-  '&family=JetBrains+Mono:wght@400..500' +
+  '?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700' +
+  '&family=Archivo:wght@300..700' +
+  '&family=Space+Mono:wght@400;700' +
   '&display=swap'
 
 // A modern desktop UA makes the API serve woff2 + unicode-range subsets.

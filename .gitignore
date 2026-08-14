@@ -50,3 +50,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 for-tsh.md
+
+# ── UI concept prototypes (temp) ──────────────────────────────────────
+# Three alternative theme concepts live here; intentionally not committed.
+temp/
