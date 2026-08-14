@@ -88,6 +88,11 @@ def _migrate() -> None:
     # Per-user limit overrides (None → app default; set by the admin console).
     _add_column("user_settings", "analysis_limit", "INTEGER")
     _add_column("user_settings", "resume_limit", "INTEGER")
+    # Free-tier counters: how many free analyses / cover letters this account
+    # has consumed (users without their own provider key get a small allowance
+    # on the platform key before they must add their own).
+    _add_column("user_settings", "free_analyses_used", "INTEGER NOT NULL DEFAULT 0")
+    _add_column("user_settings", "free_letters_used", "INTEGER NOT NULL DEFAULT 0")
 
 
 def init_db() -> None:
@@ -191,6 +196,9 @@ class UserSettings(Base):
     # Admins themselves always bypass every cap regardless of these values.
     analysis_limit = Column(Integer, default=None)
     resume_limit = Column(Integer, default=None)
+    # Free-tier usage counters (see FREE_ANALYSES_LIMIT / FREE_LETTERS_LIMIT).
+    free_analyses_used = Column(Integer, default=0)
+    free_letters_used = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -239,6 +247,13 @@ DEFAULT_GEMINI_MODELS = ["gemini-3.5-flash", "gemini-1.5-pro", "gemini-2.0-flash
 # ── Per-account limits ────────────────────────────────────────────────────────
 MAX_ANALYSES_PER_USER = 500   # max stored job analyses per account
 MAX_RESUMES_PER_USER = 5      # max saved resumes/CVs per account
+
+# ── Free tier ─────────────────────────────────────────────────────────────────
+# Users WITHOUT their own provider API key may run a small number of analyses /
+# cover letters on the platform key (admins and key-holders are unlimited).
+# After the allowance is used up they must add their own key in Settings.
+FREE_ANALYSES_LIMIT = 2   # free job analyses per account (no own key)
+FREE_LETTERS_LIMIT = 1    # free cover letter generations per account (no own key)
 RESUME_NAME_MAX = 30          # max characters for a resume name
 RESUME_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,29}$"
 DEFAULT_NIM_MODELS = ["meta/llama-3.1-8b-instruct", "mistralai/mistral-7b-instruct-v0.3"]
