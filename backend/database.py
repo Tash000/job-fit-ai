@@ -93,6 +93,9 @@ def _migrate() -> None:
     # on the platform key before they must add their own).
     _add_column("user_settings", "free_analyses_used", "INTEGER NOT NULL DEFAULT 0")
     _add_column("user_settings", "free_letters_used", "INTEGER NOT NULL DEFAULT 0")
+    # Whether the account customized its own Gemini model list (False → it
+    # follows the admin-managed platform default from PlatformSettings).
+    _add_column("user_settings", "gemini_models_custom", "BOOLEAN NOT NULL DEFAULT {default}")
 
 
 def init_db() -> None:
@@ -167,6 +170,21 @@ class Resume(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class PlatformSettings(Base):
+    """Singleton row (id=1) holding admin-managed platform defaults.
+
+    Currently stores the admin-controlled top-5 Gemini model list. Every
+    account that has NOT customized its own list resolves to these models,
+    so an admin change is immediately live for all users — no mass update.
+    """
+
+    __tablename__ = "platform_settings"
+
+    id = Column(Integer, primary_key=True)
+    default_gemini_models = Column(JSON, default=list)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class UserSettings(Base):
     __tablename__ = "user_settings"
     __table_args__ = (UniqueConstraint("user_id", name="uq_user_settings_user"),)
@@ -177,6 +195,9 @@ class UserSettings(Base):
     # Provider API keys are stored ENCRYPTED (JSON list of Fernet tokens).
     gemini_keys_enc = Column(Text, default="[]")
     gemini_models = Column(JSON, default=list)
+    # True once the user saved their own model list; while False, the account
+    # follows the admin-managed platform default (see PlatformSettings).
+    gemini_models_custom = Column(Boolean, default=False)
     nim_keys_enc = Column(Text, default="[]")
     nim_models = Column(JSON, default=list)
     nim_base_url = Column(String(500), default="https://integrate.api.nvidia.com/v1")

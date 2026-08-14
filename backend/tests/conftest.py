@@ -37,6 +37,7 @@ def clean_db():
         for model in (
             main.db.UserSettings, main.db.Profile, main.db.Application, main.db.Resume,
             main.db.CompanyResearch, main.db.User, main.db.ActivityLog,
+            main.db.PlatformSettings,
         ):
             session.query(model).delete()
         session.commit()
