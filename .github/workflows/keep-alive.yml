@@ -1,0 +1,71 @@
+name: Keep-Alive Heartbeat
+
+# Pings Supabase and backend every 3 days to prevent Supabase from pausing
+# on the free tier (7-day inactivity limit) and keeps the application active.
+#
+# REQUIRED GITHUB SECRETS (Repository -> Settings -> Secrets and variables -> Actions):
+#   - SUPABASE_URL: e.g. https://xyzcompany.supabase.co
+#   - SUPABASE_ANON_KEY: The public anon key for your Supabase project
+#   - RENDER_BACKEND_URL (optional): e.g. https://vitralume-api.onrender.com
+
+on:
+  schedule:
+    # Runs at 04:00 UTC every 3 days (well within Supabase's 7-day inactivity window)
+    - cron: '0 4 */3 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  heartbeat:
+    name: Ping Services & Keep Active
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database & Auth API
+        if: env.SUPABASE_URL != '' && env.SUPABASE_ANON_KEY != ''
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Sending keep-alive ping to Supabase REST and Auth endpoints..."
+          
+          # 1. Ping PostgREST endpoint (verifies database connectivity)
+          HTTP_REST=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/")
+          echo "Supabase REST API status: ${HTTP_REST}"
+          
+          # 2. Ping Auth Health endpoint
+          HTTP_AUTH=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/auth/v1/health")
+          echo "Supabase Auth health status: ${HTTP_AUTH}"
+
+          if [ "$HTTP_REST" -ge 200 ] && [ "$HTTP_REST" -lt 500 ]; then
+            echo "✓ Supabase is active and responsive."
+          else
+            echo "::warning::Supabase REST endpoint returned unexpected status: ${HTTP_REST}"
+          fi
+
+      - name: Ping Render Backend (Warms up cold start / keeps alive)
+        if: env.RENDER_BACKEND_URL != ''
+        env:
+          RENDER_BACKEND_URL: ${{ secrets.RENDER_BACKEND_URL }}
+        run: |
+          CLEAN_URL=$(echo "${RENDER_BACKEND_URL}" | sed 's:/*$::')
+          echo "Sending keep-alive request to backend at ${CLEAN_URL}..."
+          
+          # Ping the health / docs endpoint with a 30s timeout
+          HTTP_BACKEND=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 "${CLEAN_URL}/health" || curl -s -o /dev/null -w "%{http_code}" --max-time 60 "${CLEAN_URL}/docs" || echo "000")
+          echo "Backend HTTP status: ${HTTP_BACKEND}"
+          
+          if [ "$HTTP_BACKEND" -ge 200 ] && [ "$HTTP_BACKEND" -lt 400 ]; then
+            echo "✓ Backend service is awake."
+          else
+            echo "::notice::Backend returned status ${HTTP_BACKEND} (normal if waking up from cold start)."
+          fi
+
+      - name: Report Heartbeat Summary
+        run: |
+          echo "### Heartbeat Completed at $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Interval**: Every 3 days (Supabase 7-day auto-pause prevention)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Keep-alive signal dispatched successfully." >> $GITHUB_STEP_SUMMARY
