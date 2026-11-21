@@ -47,6 +47,7 @@ from services.exporter import export_docx, export_latex, export_pdf, export_txt
 from services.generator import CopilotGenerator, NoProviderError
 from services.job_scraper import scrape_url
 from services.parser import parse_pdf
+from services.rag import audit_claim_with_rag, chunk_resume_data, compute_embedding, index_user_resume, retrieve_grounded_chunks
 from services.research_matcher import match_research_profile
 
 logging.basicConfig(level=logging.INFO)
@@ -122,6 +123,17 @@ class ProfileUpdate(BaseModel):
     resume_text: str = ""
     parsed_profile: dict = {}
     display_name: Optional[str] = None
+
+
+class RagRetrieveRequest(BaseModel):
+    query: str
+    top_k: int = 5
+    category: Optional[str] = None
+
+
+class RagVerifyRequest(BaseModel):
+    claim: str
+    threshold: float = 0.45
 
 
 class ApplicationCreate(BaseModel):
@@ -323,6 +335,11 @@ def _decrypt_key_list(enc_json: str) -> List[str]:
 
 def _encrypt_key_list(plain_keys: List[str]) -> str:
     return json.dumps([KeyCipher.encrypt(k.strip()) for k in plain_keys if k.strip()])
+
+
+def _get_user_gemini_keys(db_session: Session, user_id: str) -> List[str]:
+    row = _get_or_create_settings(db_session, user_id)
+    return _decrypt_key_list(row.gemini_keys_enc) or list(config.GEMINI_SERVER_KEYS)
 
 
 def _apply_key_edits(db_session: Session, row: db.UserSettings, payload: SettingsUpdate) -> None:
@@ -823,6 +840,11 @@ def _save_profile(db_session: Session, user_id: str, resume_text: str, parsed_pr
     row.resume_text = resume_text
     row.parsed_profile = parsed_profile
     db_session.commit()
+    try:
+        keys = _get_user_gemini_keys(db_session, user_id)
+        index_user_resume(db_session, user_id, resume_text, parsed_profile, api_keys=keys)
+    except Exception as exc:
+        log.warning("Auto RAG indexing failed: %s", exc)
 
 
 @app.post("/api/profile/upload-resume")
@@ -871,6 +893,72 @@ def parse_resume_text(
         raise _no_provider_http(exc)
     _save_profile(db_session, user_id, raw_text, parsed_profile)
     return {"status": "success", "parsed_profile": parsed_profile}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RAG (Retrieval-Augmented Generation) & Semantic Vector Search
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/rag/index")
+def index_rag_corpus(
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Chunk and index active user resume and profile into RAG corpus."""
+    profile_row = _get_or_create_profile(db_session, user_id)
+    if not (profile_row.resume_text or "").strip():
+        return {"status": "empty", "indexed_chunks": 0, "message": "No resume text found to index."}
+
+    keys = _get_user_gemini_keys(db_session, user_id)
+    count = index_user_resume(
+        db=db_session,
+        user_id=user_id,
+        resume_text=profile_row.resume_text,
+        parsed_profile=profile_row.parsed_profile,
+        api_keys=keys,
+    )
+    return {
+        "status": "success",
+        "indexed_chunks": count,
+        "message": f"Successfully indexed {count} atomic chunks into RAG corpus.",
+    }
+
+
+@app.post("/api/rag/retrieve")
+def retrieve_rag_chunks(
+    payload: RagRetrieveRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Retrieve top-k relevant chunks from the RAG corpus matching the query."""
+    keys = _get_user_gemini_keys(db_session, user_id)
+    results = retrieve_grounded_chunks(
+        db=db_session,
+        user_id=user_id,
+        query=payload.query,
+        top_k=payload.top_k,
+        category=payload.category,
+        api_keys=keys,
+    )
+    return {"query": payload.query, "matches": results, "count": len(results)}
+
+
+@app.post("/api/rag/verify-claim")
+def verify_rag_claim(
+    payload: RagVerifyRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Ground and verify an individual claim against the user's RAG corpus."""
+    keys = _get_user_gemini_keys(db_session, user_id)
+    result = audit_claim_with_rag(
+        db=db_session,
+        user_id=user_id,
+        claim=payload.claim,
+        threshold=payload.threshold,
+        api_keys=keys,
+    )
+    return result
 
 
 @app.post("/api/jobs/extract")
