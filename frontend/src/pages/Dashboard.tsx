@@ -3,7 +3,7 @@ import {
   BriefcaseIcon, PlusIcon, ClipboardPasteIcon, ChevronRightIcon,
   TargetIcon, TrendingUpIcon, ZapIcon, UserIcon, CpuIcon,
   SparklesIcon, ArrowRightIcon, LayoutDashboardIcon, CheckCircleIcon, KeyIcon,
-  FileTextIcon, ExternalLinkIcon,
+  FileTextIcon, ExternalLinkIcon, CompassIcon,
 } from 'lucide-react'
 import { API_BASE as API } from '../lib/api'
 import type { AppItem, Profile, Settings } from '../lib/types'
@@ -16,7 +16,7 @@ interface DashboardProps {
   onNewApp: () => void
   onSmartPaste: () => void
   /** ``filter`` narrows the Applications list (e.g. only analyzed jobs). */
-  onGoTo: (view: 'apps' | 'profile' | 'settings', filter?: AppsFilter) => void
+  onGoTo: (view: 'apps' | 'profile' | 'settings' | 'jobs', filter?: AppsFilter) => void
   userName?: string
   /** Fetched once in App; passed down so the dashboard doesn't refetch it. */
   settings: Settings | null
@@ -115,6 +115,9 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
           </p>
         </div>
         <div className="flex gap-8">
+          <button className="btn btn-secondary" onClick={() => onGoTo('jobs')}>
+            <CompassIcon size={14} />Find Jobs
+          </button>
           <button className="btn btn-secondary" onClick={onSmartPaste}>
             <ClipboardPasteIcon size={14} />Smart Paste
           </button>
