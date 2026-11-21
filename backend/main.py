@@ -42,10 +42,16 @@ from database import (
     RESUME_NAME_PATTERN,
 )
 from security import KeyCipher, current_user_id
+from services.agent_graph import run_application_agent_graph
 from services.ats_optimizer import calculate_ats_score, suggest_unused_projects
 from services.exporter import export_docx, export_latex, export_pdf, export_txt
 from services.generator import CopilotGenerator, NoProviderError
 from services.job_scraper import scrape_url
+from services.job_search import (
+    generate_board_links,
+    get_personalized_job_recommendations,
+    load_job_boards,
+)
 from services.parser import parse_pdf
 from services.rag import audit_claim_with_rag, chunk_resume_data, compute_embedding, index_user_resume, retrieve_grounded_chunks
 from services.research_matcher import match_research_profile
@@ -134,6 +140,18 @@ class RagRetrieveRequest(BaseModel):
 class RagVerifyRequest(BaseModel):
     claim: str
     threshold: float = 0.45
+
+
+class PipelineGraphRequest(BaseModel):
+    job_text: str
+    company_name: Optional[str] = None
+    role_title: Optional[str] = None
+    max_iterations: Optional[int] = 2
+
+
+class BoardSearchRequest(BaseModel):
+    query: str
+    location: Optional[str] = "remote"
 
 
 class ApplicationCreate(BaseModel):
@@ -959,6 +977,79 @@ def verify_rag_claim(
         api_keys=keys,
     )
     return result
+
+
+@app.post("/api/pipeline/run-graph")
+def execute_pipeline_agent_graph(
+    payload: PipelineGraphRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """
+    Executes LangGraph multi-agent pipeline:
+    RequirementExtractor -> RAGRetriever -> ATSEvaluator -> HumanCopyWriter -> TruthfulnessCritic.
+    """
+    if not (payload.job_text or "").strip():
+        raise HTTPException(status_code=400, detail="Job posting text is required.")
+
+    profile_row = _get_or_create_profile(db_session, user_id)
+    chunk_count = db_session.query(db.ResumeChunk).filter(db.ResumeChunk.user_id == user_id).count()
+    keys = _get_user_gemini_keys(db_session, user_id)
+
+    if chunk_count == 0 and (profile_row.resume_text or "").strip():
+        index_user_resume(
+            db=db_session,
+            user_id=user_id,
+            resume_text=profile_row.resume_text,
+            parsed_profile=profile_row.parsed_profile,
+            api_keys=keys,
+        )
+
+    result = run_application_agent_graph(
+        db=db_session,
+        user_id=user_id,
+        job_text=payload.job_text,
+        company_name=payload.company_name,
+        role_title=payload.role_title,
+        max_iterations=payload.max_iterations or 2,
+        api_keys=keys,
+    )
+
+    _log_activity(db_session, user_id, "pipeline.run_graph", f"{result.get('role_title', 'Role')} at {result.get('company_name', 'Company')}")
+    return result
+
+
+@app.get("/api/jobs/boards")
+def get_curated_job_boards():
+    """Returns curated job boards catalog with filter configurations."""
+    boards = load_job_boards()
+    return {"boards": boards, "total": len(boards)}
+
+
+@app.get("/api/jobs/personalized-recommendations")
+def get_user_personalized_jobs(
+    location: Optional[str] = "remote",
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Analyzes candidate's resume and returns tailored titles, keywords, and 1-click board searches."""
+    profile_row = _get_or_create_profile(db_session, user_id)
+    recommendations = get_personalized_job_recommendations(
+        resume_text=profile_row.resume_text or "",
+        parsed_profile=profile_row.parsed_profile or {},
+        custom_location=location or "remote",
+    )
+    return recommendations
+
+
+@app.post("/api/jobs/generate-board-searches")
+def generate_custom_board_searches(
+    payload: BoardSearchRequest,
+):
+    """Generates 1-click deep links across all boards for a custom query and location."""
+    boards = load_job_boards()
+    links = generate_board_links(boards, query=payload.query, location=payload.location or "remote")
+    return {"query": payload.query, "location": payload.location or "remote", "board_links": links}
 
 
 @app.post("/api/jobs/extract")
