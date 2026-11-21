@@ -60,17 +60,8 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
     || 'there'
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 
-  // A rotating set of quirky, friendly lines — changes every day.
-  const FRIENDLY_LINES = [
-    'Ready to land your next role? Let’s make it happen today.',
-    'New job, new win — one application at a time.',
-    'The perfect role is out there. Let’s go find it.',
-    'Dream job hunting mode: activated.',
-    'Every application is a step closer to your next offer.',
-    'Your future self is cheering for you. Let’s get to work.',
-  ]
-  const dayIndex = Math.floor(Date.now() / 86_400_000) % FRIENDLY_LINES.length
-
+  const activeCount = apps.length
+  const analyzedCount = analyzed.length
   const provider = settings?.active_provider ?? 'gemini'
   const providerActive = isProviderActive(settings)
 
@@ -116,8 +107,12 @@ export function DashboardView({ onOpenApp, onNewApp, onSmartPaste, onGoTo, userN
       <div className="dash-hero">
         <div>
           <p className="text-xs text-muted">{today}</p>
-          <h2>Hi {name}, how are you today? 👋</h2>
-          <p className="text-sm text-secondary">{FRIENDLY_LINES[dayIndex]}</p>
+          <h2>Welcome back, {name}! Let's get you hired.</h2>
+          <p className="text-sm text-secondary">
+            {activeCount === 0
+              ? 'Ready to start? Paste a job link or upload your resume above to get moving.'
+              : `You are tracking ${activeCount} job${activeCount === 1 ? '' : 's'} — ${analyzedCount} analyzed and ready to review.`}
+          </p>
         </div>
         <div className="flex gap-8">
           <button className="btn btn-secondary" onClick={onSmartPaste}>
