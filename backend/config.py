@@ -18,10 +18,13 @@ load_dotenv()  # fall back to cwd
 
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 
-DATABASE_URL = os.getenv(
+_raw_db = os.getenv(
     "DATABASE_URL",
     f"sqlite:///{( _BACKEND_DIR / 'copilot.db').as_posix()}",
-)
+).strip()
+if _raw_db.startswith("postgres://"):
+    _raw_db = _raw_db.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = _raw_db
 
 # ── Supabase (auth) ──────────────────────────────────────────────────────────
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")

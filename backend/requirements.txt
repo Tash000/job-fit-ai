@@ -5,7 +5,8 @@ python-multipart>=0.0.9
 
 # ── Data / DB ───────────────────────────────────────────────────
 sqlalchemy>=2.0
-psycopg2-binary>=2.9        # PostgreSQL (production / Supabase)
+psycopg2-binary>=2.9        # PostgreSQL (psycopg2)
+psycopg[binary]>=3.1        # PostgreSQL (psycopg 3 / Supabase session pooler)
 pydantic>=2.7
 
 # ── Security ────────────────────────────────────────────────────
