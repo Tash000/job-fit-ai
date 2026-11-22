@@ -147,13 +147,13 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 80px' }}>
       {/* ── Page Header ── */}
       <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderRadius: 999, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', marginBottom: 12 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', marginBottom: 12 }}>
           <CompassIcon size={14} color="var(--accent)" />
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent)', letterSpacing: '0.04em' }}>
-            BOARD DIRECTORY & DEEP SEARCH
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Board Directory & Deep Search
           </span>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 8px', color: 'var(--color-foreground)' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 'var(--font-weight-bold)', margin: '0 0 8px', color: 'var(--color-foreground)' }}>
           Find Jobs That Actually Fit You
         </h1>
         <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)', maxWidth: 680, lineHeight: 1.5 }}>
