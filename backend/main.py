@@ -297,10 +297,14 @@ def _get_platform_settings(db_session: Session) -> db.PlatformSettings:
     """Singleton row holding admin-managed platform defaults (id=1)."""
     row = db_session.query(db.PlatformSettings).filter_by(id=1).first()
     if row is None:
-        row = db.PlatformSettings(id=1, default_gemini_models=DEFAULT_GEMINI_MODELS)
-        db_session.add(row)
-        db_session.commit()
-        db_session.refresh(row)
+        try:
+            row = db.PlatformSettings(id=1, default_gemini_models=DEFAULT_GEMINI_MODELS)
+            db_session.add(row)
+            db_session.commit()
+            db_session.refresh(row)
+        except Exception:
+            db_session.rollback()
+            row = db_session.query(db.PlatformSettings).filter_by(id=1).first()
     return row
 
 
