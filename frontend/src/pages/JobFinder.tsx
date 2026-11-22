@@ -149,11 +149,11 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', borderRadius: 999, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', marginBottom: 12 }}>
           <CompassIcon size={14} color="var(--accent)" />
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent)' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent)', letterSpacing: '0.04em' }}>
             BOARD DIRECTORY & DEEP SEARCH
           </span>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', margin: '0 0 8px', color: 'var(--color-foreground)' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 700, letterSpacing: '-0.025em', margin: '0 0 8px', color: 'var(--color-foreground)' }}>
           Find Jobs That Actually Fit You
         </h1>
         <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-muted)', maxWidth: 680, lineHeight: 1.5 }}>
@@ -402,7 +402,7 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
       <div style={{ background: 'var(--color-card)', border: '2px solid var(--accent-border)', borderRadius: 'var(--radius-lg)', padding: '28px 24px', boxShadow: 'var(--shadow-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <SparklesIcon size={20} color="var(--accent)" />
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: '1.35rem', color: 'var(--color-foreground)' }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: '1.35rem', fontWeight: 650, letterSpacing: '-0.015em', color: 'var(--color-foreground)' }}>
             Found a Listing? Run the LangGraph Multi-Agent Team
           </h2>
         </div>
