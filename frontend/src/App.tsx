@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react'
 import {
   LayoutDashboardIcon, BriefcaseIcon, UserIcon, SettingsIcon,
-  LogOutIcon, SunIcon, MoonIcon, ShieldCheckIcon,
+  LogOutIcon, SunIcon, MoonIcon, ShieldCheckIcon, CompassIcon,
 } from 'lucide-react'
 import './index.css'
 import { useAuth } from './lib/auth'
@@ -24,14 +24,16 @@ const DashboardView = lazy(() => import('./pages/Dashboard').then(m => ({ defaul
 const ApplicationsView = lazy(() => import('./pages/Applications').then(m => ({ default: m.ApplicationsView })))
 const ProfileView = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfileView })))
 const SettingsView = lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsView })))
+const JobFinderView = lazy(() => import('./pages/JobFinder').then(m => ({ default: m.JobFinderView })))
 const AdminConsole = lazy(() => import('./pages/admin/AdminConsole').then(m => ({ default: m.AdminConsole })))
 
-type View = 'dashboard' | 'profile' | 'apps' | 'settings'
+type View = 'dashboard' | 'jobs' | 'profile' | 'apps' | 'settings'
 
-// Sidebar order (desktop + mobile): Dashboard, Resume & Profile, Applications,
-// Settings — Resume sits second so users find their setup step right away.
+// Sidebar order (desktop + mobile): Dashboard, Job Finder, Resume & Profile, Applications,
+// Settings — Job Finder gives instant access to personalized search engines.
 const VIEW_META: Record<View, { label: string; short: string; icon: typeof LayoutDashboardIcon; hint: string }> = {
   dashboard: { label: 'Dashboard', short: 'Home', icon: LayoutDashboardIcon, hint: 'Your job hunt at a glance' },
+  jobs:      { label: 'Job Finder', short: 'Find Jobs', icon: CompassIcon, hint: 'Curated job boards and tailored searches' },
   profile:   { label: 'Resume & Profile', short: 'Profile', icon: UserIcon, hint: 'Your resume powers every analysis' },
   apps:      { label: 'Applications', short: 'Apps', icon: BriefcaseIcon, hint: 'Track, analyze, and perfect every application' },
   settings:  { label: 'Settings', short: 'Settings', icon: SettingsIcon, hint: 'Providers, models, appearance' },
@@ -40,12 +42,14 @@ const VIEW_META: Record<View, { label: string; short: string; icon: typeof Layou
 /** URL path ↔ view mapping for the user-mode pages. */
 const VIEW_PATHS: Record<View, string> = {
   dashboard: '/',
+  jobs: '/jobs',
   profile: '/profile',
   apps: '/applications',
   settings: '/settings',
 }
 const PATH_VIEW: Record<string, View> = {
   '/': 'dashboard',
+  '/jobs': 'jobs',
   '/profile': 'profile',
   '/applications': 'apps',
   '/settings': 'settings',
@@ -338,6 +342,9 @@ export default function App() {
                 userName={user.email.split('@')[0]}
                 settings={settings}
               />
+            )}
+            {nav === 'jobs' && (
+              <JobFinderView onNavigateToApps={() => navigate(VIEW_PATHS.apps)} />
             )}
             {nav === 'apps' && (
               <ApplicationsView

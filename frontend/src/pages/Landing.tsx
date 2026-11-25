@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   SparklesIcon, TargetIcon, BookOpenIcon, FileTextIcon,
   WandIcon, ShieldCheckIcon, BarChartIcon, CheckCircleIcon,
-  ArrowRightIcon, CpuIcon,
+  ArrowRightIcon, CpuIcon, CompassIcon,
 } from 'lucide-react'
 import { AuthPanel } from '../lib/auth'
 import { InstallPrompt } from '../components/InstallPrompt'
@@ -208,9 +208,11 @@ function scrollToId(id?: string) {
 const FEATURES: [typeof TargetIcon, string, string][] = [
   [TargetIcon, 'ATS Score & Keywords', 'See exactly which keywords from the job description appear in your resume — and which to add before you apply.'],
   [BarChartIcon, 'Suitability Analysis', 'A 0–100 fit score broken into technical, research, leadership, and communication dimensions with strengths and gaps.'],
+  [CompassIcon, 'Personalized Job Finder', 'Tailored 1-click searches across LinkedIn, Indeed, Wellfound, Google Jobs, and YC using exact skills mined from your resume.'],
+  [CpuIcon, 'LangGraph Multi-Agent Team', 'Five coordinated agents extract requirements, cross-check against verified resume chunks, and eliminate hallucinations.'],
   [BookOpenIcon, 'Research Matcher', 'Aligns your publications and projects with the lab or team, surfacing overlap with the professor\u2019s actual work.'],
-  [FileTextIcon, 'Cover Letter Generator', 'Paragraph-level planning, five writing styles, and export to TXT, DOCX, or LaTeX in one click.'],
   [ShieldCheckIcon, 'Truthfulness Audit', 'Every sentence is checked against your real profile — a citation trail shows exactly what came from where.'],
+  [FileTextIcon, 'Cover Letter Generator', 'Paragraph-level planning, five writing styles, and export to TXT, DOCX, or LaTeX in one click.'],
   [WandIcon, 'Smart Job Paste', 'Paste any job posting — LinkedIn, email, university site — and AI extracts the fields automatically.'],
 ]
 

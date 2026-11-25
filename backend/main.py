@@ -42,11 +42,18 @@ from database import (
     RESUME_NAME_PATTERN,
 )
 from security import KeyCipher, current_user_id
+from services.agent_graph import run_application_agent_graph
 from services.ats_optimizer import calculate_ats_score, suggest_unused_projects
 from services.exporter import export_docx, export_latex, export_pdf, export_txt
 from services.generator import CopilotGenerator, NoProviderError
 from services.job_scraper import scrape_url
+from services.job_search import (
+    generate_board_links,
+    get_personalized_job_recommendations,
+    load_job_boards,
+)
 from services.parser import parse_pdf
+from services.rag import audit_claim_with_rag, chunk_resume_data, compute_embedding, index_user_resume, retrieve_grounded_chunks
 from services.research_matcher import match_research_profile
 
 logging.basicConfig(level=logging.INFO)
@@ -122,6 +129,29 @@ class ProfileUpdate(BaseModel):
     resume_text: str = ""
     parsed_profile: dict = {}
     display_name: Optional[str] = None
+
+
+class RagRetrieveRequest(BaseModel):
+    query: str
+    top_k: int = 5
+    category: Optional[str] = None
+
+
+class RagVerifyRequest(BaseModel):
+    claim: str
+    threshold: float = 0.45
+
+
+class PipelineGraphRequest(BaseModel):
+    job_text: str
+    company_name: Optional[str] = None
+    role_title: Optional[str] = None
+    max_iterations: Optional[int] = 2
+
+
+class BoardSearchRequest(BaseModel):
+    query: str
+    location: Optional[str] = "remote"
 
 
 class ApplicationCreate(BaseModel):
@@ -267,10 +297,14 @@ def _get_platform_settings(db_session: Session) -> db.PlatformSettings:
     """Singleton row holding admin-managed platform defaults (id=1)."""
     row = db_session.query(db.PlatformSettings).filter_by(id=1).first()
     if row is None:
-        row = db.PlatformSettings(id=1, default_gemini_models=DEFAULT_GEMINI_MODELS)
-        db_session.add(row)
-        db_session.commit()
-        db_session.refresh(row)
+        try:
+            row = db.PlatformSettings(id=1, default_gemini_models=DEFAULT_GEMINI_MODELS)
+            db_session.add(row)
+            db_session.commit()
+            db_session.refresh(row)
+        except Exception:
+            db_session.rollback()
+            row = db_session.query(db.PlatformSettings).filter_by(id=1).first()
     return row
 
 
@@ -323,6 +357,11 @@ def _decrypt_key_list(enc_json: str) -> List[str]:
 
 def _encrypt_key_list(plain_keys: List[str]) -> str:
     return json.dumps([KeyCipher.encrypt(k.strip()) for k in plain_keys if k.strip()])
+
+
+def _get_user_gemini_keys(db_session: Session, user_id: str) -> List[str]:
+    row = _get_or_create_settings(db_session, user_id)
+    return _decrypt_key_list(row.gemini_keys_enc) or list(config.GEMINI_SERVER_KEYS)
 
 
 def _apply_key_edits(db_session: Session, row: db.UserSettings, payload: SettingsUpdate) -> None:
@@ -823,6 +862,11 @@ def _save_profile(db_session: Session, user_id: str, resume_text: str, parsed_pr
     row.resume_text = resume_text
     row.parsed_profile = parsed_profile
     db_session.commit()
+    try:
+        keys = _get_user_gemini_keys(db_session, user_id)
+        index_user_resume(db_session, user_id, resume_text, parsed_profile, api_keys=keys)
+    except Exception as exc:
+        log.warning("Auto RAG indexing failed: %s", exc)
 
 
 @app.post("/api/profile/upload-resume")
@@ -871,6 +915,145 @@ def parse_resume_text(
         raise _no_provider_http(exc)
     _save_profile(db_session, user_id, raw_text, parsed_profile)
     return {"status": "success", "parsed_profile": parsed_profile}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# RAG (Retrieval-Augmented Generation) & Semantic Vector Search
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/rag/index")
+def index_rag_corpus(
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Chunk and index active user resume and profile into RAG corpus."""
+    profile_row = _get_or_create_profile(db_session, user_id)
+    if not (profile_row.resume_text or "").strip():
+        return {"status": "empty", "indexed_chunks": 0, "message": "No resume text found to index."}
+
+    keys = _get_user_gemini_keys(db_session, user_id)
+    count = index_user_resume(
+        db=db_session,
+        user_id=user_id,
+        resume_text=profile_row.resume_text,
+        parsed_profile=profile_row.parsed_profile,
+        api_keys=keys,
+    )
+    return {
+        "status": "success",
+        "indexed_chunks": count,
+        "message": f"Successfully indexed {count} atomic chunks into RAG corpus.",
+    }
+
+
+@app.post("/api/rag/retrieve")
+def retrieve_rag_chunks(
+    payload: RagRetrieveRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Retrieve top-k relevant chunks from the RAG corpus matching the query."""
+    keys = _get_user_gemini_keys(db_session, user_id)
+    results = retrieve_grounded_chunks(
+        db=db_session,
+        user_id=user_id,
+        query=payload.query,
+        top_k=payload.top_k,
+        category=payload.category,
+        api_keys=keys,
+    )
+    return {"query": payload.query, "matches": results, "count": len(results)}
+
+
+@app.post("/api/rag/verify-claim")
+def verify_rag_claim(
+    payload: RagVerifyRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Ground and verify an individual claim against the user's RAG corpus."""
+    keys = _get_user_gemini_keys(db_session, user_id)
+    result = audit_claim_with_rag(
+        db=db_session,
+        user_id=user_id,
+        claim=payload.claim,
+        threshold=payload.threshold,
+        api_keys=keys,
+    )
+    return result
+
+
+@app.post("/api/pipeline/run-graph")
+def execute_pipeline_agent_graph(
+    payload: PipelineGraphRequest,
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """
+    Executes LangGraph multi-agent pipeline:
+    RequirementExtractor -> RAGRetriever -> ATSEvaluator -> HumanCopyWriter -> TruthfulnessCritic.
+    """
+    if not (payload.job_text or "").strip():
+        raise HTTPException(status_code=400, detail="Job posting text is required.")
+
+    profile_row = _get_or_create_profile(db_session, user_id)
+    chunk_count = db_session.query(db.ResumeChunk).filter(db.ResumeChunk.user_id == user_id).count()
+    keys = _get_user_gemini_keys(db_session, user_id)
+
+    if chunk_count == 0 and (profile_row.resume_text or "").strip():
+        index_user_resume(
+            db=db_session,
+            user_id=user_id,
+            resume_text=profile_row.resume_text,
+            parsed_profile=profile_row.parsed_profile,
+            api_keys=keys,
+        )
+
+    result = run_application_agent_graph(
+        db=db_session,
+        user_id=user_id,
+        job_text=payload.job_text,
+        company_name=payload.company_name,
+        role_title=payload.role_title,
+        max_iterations=payload.max_iterations or 2,
+        api_keys=keys,
+    )
+
+    _log_activity(db_session, user_id, "pipeline.run_graph", f"{result.get('role_title', 'Role')} at {result.get('company_name', 'Company')}")
+    return result
+
+
+@app.get("/api/jobs/boards")
+def get_curated_job_boards():
+    """Returns curated job boards catalog with filter configurations."""
+    boards = load_job_boards()
+    return {"boards": boards, "total": len(boards)}
+
+
+@app.get("/api/jobs/personalized-recommendations")
+def get_user_personalized_jobs(
+    location: Optional[str] = "remote",
+    user_id: str = Depends(authed_user),
+    db_session: Session = Depends(db.get_db),
+):
+    """Analyzes candidate's resume and returns tailored titles, keywords, and 1-click board searches."""
+    profile_row = _get_or_create_profile(db_session, user_id)
+    recommendations = get_personalized_job_recommendations(
+        resume_text=profile_row.resume_text or "",
+        parsed_profile=profile_row.parsed_profile or {},
+        custom_location=location or "remote",
+    )
+    return recommendations
+
+
+@app.post("/api/jobs/generate-board-searches")
+def generate_custom_board_searches(
+    payload: BoardSearchRequest,
+):
+    """Generates 1-click deep links across all boards for a custom query and location."""
+    boards = load_job_boards()
+    links = generate_board_links(boards, query=payload.query, location=payload.location or "remote")
+    return {"query": payload.query, "location": payload.location or "remote", "board_links": links}
 
 
 @app.post("/api/jobs/extract")

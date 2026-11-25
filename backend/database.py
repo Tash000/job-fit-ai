@@ -174,6 +174,23 @@ class Resume(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class ResumeChunk(Base):
+    """Atomic chunk from a user's resume, publication, or project for RAG retrieval."""
+
+    __tablename__ = "resume_chunks"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(64), index=True, nullable=False)
+    resume_id = Column(Integer, index=True, nullable=True)
+    category = Column(String(32), default="experience")  # experience, publication, project, skill, education
+    chunk_index = Column(Integer, default=0)
+    title = Column(String(255), default="")  # e.g., company name, publication title, project name
+    content = Column(Text, nullable=False)
+    embedding = Column(JSON, default=list)  # list of float dimensions
+    metadata_json = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class PlatformSettings(Base):
     """Singleton row (id=1) holding admin-managed platform defaults.
 

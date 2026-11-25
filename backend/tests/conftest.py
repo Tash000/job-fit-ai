@@ -36,6 +36,7 @@ def clean_db():
     try:
         for model in (
             main.db.UserSettings, main.db.Profile, main.db.Application, main.db.Resume,
+            main.db.ResumeChunk,
             main.db.CompanyResearch, main.db.User, main.db.ActivityLog,
             main.db.PlatformSettings,
         ):

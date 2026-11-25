@@ -14,7 +14,7 @@ import re
 import socket
 from html.parser import HTMLParser
 from typing import Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests as _requests
 
@@ -105,23 +105,39 @@ def scrape_url(url: str) -> Dict:
     url = (url or "").strip()
     if not url.lower().startswith(("http://", "https://")):
         raise ValueError("Enter a full URL starting with http:// or https://")
-    parsed = urlparse(url)
-    if not parsed.hostname:
-        raise ValueError("That doesn't look like a valid URL.")
-    _reject_private_host(parsed.hostname)
+    current_url = url
+    resp = None
+    for _ in range(5):
+        parsed = urlparse(current_url)
+        if not parsed.hostname:
+            raise ValueError("That doesn't look like a valid URL.")
+        _reject_private_host(parsed.hostname)
 
-    try:
-        resp = _requests.get(
-            url,
-            headers={"User-Agent": _USER_AGENT, "Accept": "text/html,*/*"},
-            timeout=_REQUEST_TIMEOUT,
-            allow_redirects=True,
-        )
-        resp.raise_for_status()
-    except _requests.exceptions.Timeout:
-        raise ValueError("The site took too long to respond — try again or paste the text manually.")
-    except _requests.exceptions.RequestException:
-        raise ValueError("Couldn't reach that page — it may be behind a login or blocking bots. Try pasting the text manually.")
+        try:
+            r = _requests.get(
+                current_url,
+                headers={"User-Agent": _USER_AGENT, "Accept": "text/html,*/*"},
+                timeout=_REQUEST_TIMEOUT,
+                allow_redirects=False,
+            )
+        except _requests.exceptions.Timeout:
+            raise ValueError("The site took too long to respond — try again or paste the text manually.")
+        except _requests.exceptions.RequestException:
+            raise ValueError("Couldn't reach that page — it may be behind a login or blocking bots. Try pasting the text manually.")
+
+        if r.is_redirect or r.status_code in (301, 302, 303, 307, 308):
+            redirect_target = r.headers.get("Location")
+            if not redirect_target:
+                resp = r
+                break
+            current_url = urljoin(current_url, redirect_target)
+            continue
+
+        r.raise_for_status()
+        resp = r
+        break
+    else:
+        raise ValueError("Too many redirects when trying to reach that page.")
 
     # Only HTML pages are scrapable.
     ctype = resp.headers.get("Content-Type", "").lower()

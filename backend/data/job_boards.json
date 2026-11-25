@@ -1,0 +1,74 @@
+[
+  {
+    "id": "linkedin",
+    "name": "LinkedIn Jobs",
+    "category": "general",
+    "badge": "Top for Networking",
+    "description": "Best for established companies, direct recruiter messages, and 1-click Easy Apply roles.",
+    "search_url_template": "https://www.linkedin.com/jobs/search/?keywords={keywords}&location={location}&f_TPR=r604800",
+    "tips": "Filter by 'Past Week' and 'Easy Apply' to get faster recruiter responses."
+  },
+  {
+    "id": "indeed",
+    "name": "Indeed",
+    "category": "general",
+    "badge": "Largest Job Pool",
+    "description": "Massive volume across every industry, company size, and local market.",
+    "search_url_template": "https://www.indeed.com/jobs?q={keywords}&l={location}&fromage=7",
+    "tips": "Sort by 'Date' rather than 'Relevance' to catch listings posted in the last 48 hours."
+  },
+  {
+    "id": "wellfound",
+    "name": "Wellfound (AngelList)",
+    "category": "tech_startups",
+    "badge": "Startup Specialists",
+    "description": "Direct communication with startup founders and engineering leads. Transparent salary ranges and equity.",
+    "search_url_template": "https://wellfound.com/jobs?query={keywords}",
+    "tips": "Great for early-stage to Series B tech teams looking for hands-on builders."
+  },
+  {
+    "id": "remoteok",
+    "name": "RemoteOK",
+    "category": "remote_first",
+    "badge": "100% Remote",
+    "description": "Curated remote engineering, product, and design roles from worldwide companies.",
+    "search_url_template": "https://remoteok.com/remote-{keywords}-jobs",
+    "tips": "Look for listings tagged with 'Worldwide' if applying from outside North America or Europe."
+  },
+  {
+    "id": "google_jobs",
+    "name": "Google Jobs",
+    "category": "general",
+    "badge": "Aggregator",
+    "description": "Google's real-time job indexing engine pulling postings across thousands of company career portals.",
+    "search_url_template": "https://www.google.com/search?ibp=htl;jobs&q={keywords}+{location}",
+    "tips": "Pulls directly from GreenHouse, Lever, and Workday company career sites."
+  },
+  {
+    "id": "yc_startup",
+    "name": "Y Combinator (Work at a Startup)",
+    "category": "tech_startups",
+    "badge": "YC Backed",
+    "description": "Exclusive job board for Y Combinator funded startups. Directly browse roles by batch, tech stack, and funding.",
+    "search_url_template": "https://www.workatastartup.com/jobs?query={keywords}",
+    "tips": "Applications go straight to the founder's inbox without passing generic HR screening."
+  },
+  {
+    "id": "glassdoor",
+    "name": "Glassdoor",
+    "category": "general",
+    "badge": "Salary & Culture Insights",
+    "description": "Search job openings alongside verified anonymous employee reviews and real salary figures.",
+    "search_url_template": "https://www.glassdoor.com/Job/jobs.htm?sc.keyword={keywords}&locT=C&locId=0",
+    "tips": "Check interview review sections for recent candidates' question lists."
+  },
+  {
+    "id": "ziprecruiter",
+    "name": "ZipRecruiter",
+    "category": "general",
+    "badge": "Fast Candidate Matching",
+    "description": "High-speed matching with 'Applied' status tracking and 1-tap applications.",
+    "search_url_template": "https://www.ziprecruiter.com/candidate/search?search={keywords}&location={location}&days=7",
+    "tips": "Use the 'Urgent Hiring' filter to locate hiring managers making fast decisions."
+  }
+]
