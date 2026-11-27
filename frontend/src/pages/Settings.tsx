@@ -23,9 +23,9 @@ const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
 ]
 
 const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
-  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Matcha (Main), Salmon, Lacquer', swatch: 'swatch-teabook' },
   { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
   { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
+  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Matcha (Main), Salmon, Lacquer', swatch: 'swatch-teabook' },
   { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
 ]
 
@@ -147,7 +147,7 @@ export function SettingsView({
   /** Settings already fetched by the app shell — renders instantly. */
   initial?: SettingsData | null
 }) {
-  const { theme, accent, style, optionalThemes, setTheme, setAccent, setStyle, setOptionalThemes } = useAppearance()
+  const { theme, accent, style, setTheme, setAccent, setStyle } = useAppearance()
   // Start from the app shell's copy (or cache) so the page is instant, then
   // refresh in the background to stay fresh.
   const [s, setS] = useState<SettingsData | null>(initial ?? null)
@@ -267,46 +267,25 @@ export function SettingsView({
             })}
           </div>
 
-          <div className="settings-section-title" style={{ marginTop: 4 }}>Custom themes & styles</div>
-          <p className="text-xs text-muted">Handcrafted color harmonies with dedicated light and dark modes — featuring Japanese Teabook 1 (Sanzo Wada #217), Beige, and Noir.</p>
-          <div className="optional-row">
-            <span className="optional-label">
-              <strong>Enable custom themes & styles</strong>
-              <small>Japanese Teabook 1 · Beige · Noir</small>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={optionalThemes}
-              className={`settings-switch${optionalThemes ? ' on' : ''}`}
-              onClick={() => setOptionalThemes(!optionalThemes)}
-            >
-              <span className="settings-switch-knob" />
-            </button>
+          <div className="settings-section-title" style={{ marginTop: 16 }}>Theme Style</div>
+          <p className="text-xs text-muted">Handcrafted color harmonies with dedicated light and dark modes.</p>
+          <div className="flex gap-8 flex-wrap">
+            {STYLES.map(st => (
+              <button
+                key={st.value}
+                className={`accent-swatch ${style === st.value ? 'active' : ''}`}
+                onClick={() => setStyle(st.value)}
+              >
+                <span className={`swatch ${st.swatch}`} />
+                <span>
+                  {st.label}
+                  <small className="swatch-desc">{st.desc}</small>
+                </span>
+              </button>
+            ))}
           </div>
 
-          {optionalThemes && (
-            <div className="settings-section-title">Theme style</div>
-          )}
-          {optionalThemes && (
-            <div className="flex gap-8 flex-wrap">
-              {STYLES.map(st => (
-                <button
-                  key={st.value}
-                  className={`accent-swatch ${style === st.value ? 'active' : ''}`}
-                  onClick={() => setStyle(st.value)}
-                >
-                  <span className={`swatch ${st.swatch}`} />
-                  <span>
-                    {st.label}
-                    <small className="swatch-desc">{st.desc}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {optionalThemes && style === 'teabook' && (
+          {style === 'teabook' && (
             <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 'var(--radius-md)', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-foreground)', marginBottom: 4 }}>
                 Sanzo Wada (1933) · Combination #217 (Japanese Teabook 1)
@@ -340,10 +319,10 @@ export function SettingsView({
             </div>
           )}
 
-          {(!optionalThemes || style === 'editorial') && (
+          {style === 'editorial' && (
             <>
-              <div className="settings-section-title">Accent Color</div>
-              <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts.</p>
+              <div className="settings-section-title" style={{ marginTop: 16 }}>Accent Color</div>
+              <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts in Editorial style.</p>
               <div className="flex gap-8 flex-wrap">
                 {ACCENTS.map(a => (
                   <button

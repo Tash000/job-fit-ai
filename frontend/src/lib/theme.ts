@@ -122,9 +122,8 @@ export function useAppearance(): Appearance {
   const [optionalThemes, setOptionalThemes] = useState<boolean>(getInitialOptionalThemes)
   const [sysDark, setSysDark] = useState<boolean>(systemPrefersDark)
 
-  // The style only takes effect when optional themes are enabled; otherwise
-  // the app keeps the classic editorial look.
-  const effectiveStyle: Style = optionalThemes ? style : 'editorial'
+  // The selected style is directly applied to the document.
+  const effectiveStyle: Style = style
 
   // Follow OS changes only while the user is on 'system'.
   useEffect(() => {
