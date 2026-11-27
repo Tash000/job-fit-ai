@@ -344,7 +344,10 @@ export default function App() {
               />
             )}
             {nav === 'jobs' && (
-              <JobFinderView onNavigateToApps={() => navigate(VIEW_PATHS.apps)} />
+              <JobFinderView
+                notify={notify}
+                onNavigateToApps={goToApps}
+              />
             )}
             {nav === 'apps' && (
               <ApplicationsView
