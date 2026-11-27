@@ -104,7 +104,7 @@ export interface Appearance {
 
 /** Canvas color per style, used for the browser chrome (meta theme-color). */
 const CANVAS: Record<Style, Record<ResolvedTheme, string>> = {
-  teabook: { light: '#FAF4EE', dark: '#16100E' },
+  teabook: { light: '#FAF5EE', dark: '#140E0E' },
   editorial: { light: '#F3EEE4', dark: '#161310' },
   beige: { light: '#EDEDCE', dark: '#211C14' },
   noir: { light: '#EFE4D2', dark: '#131D4F' },

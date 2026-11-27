@@ -385,45 +385,48 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* Japanese Teabook 1 · Light — Sanzo Wada (1933) Triad #217:
-   Pale Burnt Lake (#802626) · Ochraceous Salmon (#D8A37B) · Diamine Green (#1A7444)
-   Warm artisanal washi canvas, deep cinnabar lacquer actions, matcha indicators */
+   Diamine Green (#1A7444) [MAIN HERO BRAND]
+   Ochraceous Salmon (#D8A37B) [WASHI CANVAS, CARDS & TILES]
+   Pale Burnt Lake (#802626) [CINNABAR LACQUER CONTRAST ACCENTS]
+   Matcha garden buttons & active accents, warm washi paper surfaces, lacquer contrast */
 [data-style="teabook"] {
-  --color-background: #FAF4EE;
-  --color-foreground: #2A1711;
-  --color-card: #FFFDFB;
-  --color-card-foreground: #2A1711;
-  --color-muted: #F3E7DC;
-  --color-muted-foreground: #785743;
-  --color-secondary: #F2E6DB;
-  --color-secondary-foreground: #2A1711;
-  --color-border: #E6D2C0;
-  --color-input: #FAF4EE;
+  --color-background: #FAF5EE;
+  --color-foreground: #281B15;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #281B15;
+  --color-muted: #F4EAE0;
+  --color-muted-foreground: #7D5943;
+  --color-secondary: #F6EDE4;
+  --color-secondary-foreground: #281B15;
+  --color-border: #E8D5C4;
+  --color-input: #FCF9F5;
 
-  --brand-50:   var(--wada-burnt-lake-50);
-  --brand-100:  var(--wada-burnt-lake-100);
-  --brand-200:  var(--wada-burnt-lake-200);
-  --brand-300:  var(--wada-burnt-lake-300);
-  --brand-400:  var(--wada-burnt-lake-400);
-  --brand-500:  var(--wada-burnt-lake-500);
-  --brand-600:  var(--wada-burnt-lake-600);
-  --brand-700:  var(--wada-burnt-lake-700);
-  --brand-800:  var(--wada-burnt-lake-800);
+  /* Main Hero Brand: Diamine Green (#1A7444) */
+  --brand-50:   var(--wada-diamine-50);
+  --brand-100:  var(--wada-diamine-100);
+  --brand-200:  var(--wada-diamine-200);
+  --brand-300:  var(--wada-diamine-300);
+  --brand-400:  var(--wada-diamine-400);
+  --brand-500:  var(--wada-diamine-500);
+  --brand-600:  var(--wada-diamine-600);
+  --brand-700:  var(--wada-diamine-700);
+  --brand-800:  var(--wada-diamine-800);
   --brand-grad-to: var(--wada-salmon-400);
 
-  --color-ring: var(--wada-burnt-lake-500);
-  --color-primary: var(--wada-burnt-lake-500);
-  --color-primary-hover: var(--wada-burnt-lake-600);
-  --color-primary-active: var(--wada-burnt-lake-700);
-  --color-primary-foreground: #FFFDFB;
+  --color-ring: var(--wada-diamine-500);
+  --color-primary: var(--wada-diamine-500);
+  --color-primary-hover: var(--wada-diamine-600);
+  --color-primary-active: var(--wada-diamine-700);
+  --color-primary-foreground: #FFFFFF;
 
   --color-success: var(--wada-diamine-500);
   --color-warning: var(--wada-salmon-600);
   --color-error: var(--wada-burnt-lake-500);
   --color-info: var(--wada-diamine-500);
 
-  --color-sidebar: #F6ECE1;
-  --color-sidebar-border: #E6D2C0;
-  --text-secondary: #6B4934;
+  --color-sidebar: #F4ECE1;
+  --color-sidebar-border: #E8D5C4;
+  --text-secondary: #6B4935;
   --border-strong: var(--wada-salmon-400);
 
   --teal: var(--wada-diamine-500);
@@ -450,59 +453,60 @@
   --violet-bg: var(--wada-burnt-lake-50);
   --violet-border: var(--wada-burnt-lake-200);
 
-  --topbar-bg: color-mix(in srgb, #FAF4EE 92%, transparent);
-  --logo-gradient: linear-gradient(135deg, var(--wada-burnt-lake-500), var(--wada-salmon-400));
-  --ink-shadow: #2A1711;
+  --topbar-bg: color-mix(in srgb, #FAF5EE 92%, transparent);
+  --logo-gradient: linear-gradient(135deg, var(--wada-diamine-500), var(--wada-salmon-400));
+  --ink-shadow: #281B15;
 }
 
 /* Japanese Teabook 1 · Dark — deep roasted lacquer tea-chest canvas,
-   unbleached silk text, salmon warm borders, luminous matcha indicators */
+   rich lacquer tile surfaces, luminous matcha main actions, salmon silk text */
 [data-style="teabook"][data-theme="dark"] {
-  --color-background: #16100E;
-  --color-foreground: #F5ECE3;
-  --color-card: #221714;
-  --color-card-foreground: #F5ECE3;
-  --color-muted: #2C1E1A;
+  --color-background: #140E0E;
+  --color-foreground: #F5EAE1;
+  --color-card: #201514;
+  --color-card-foreground: #F5EAE1;
+  --color-muted: #2B1C1B;
   --color-muted-foreground: #D8A37B;
-  --color-secondary: #261B17;
-  --color-secondary-foreground: #F5ECE3;
-  --color-border: #422C25;
-  --color-input: #1A1210;
+  --color-secondary: #251817;
+  --color-secondary-foreground: #F5EAE1;
+  --color-border: #442928;
+  --color-input: #181010;
 
-  --brand-50:   var(--wada-burnt-lake-50);
-  --brand-100:  var(--wada-burnt-lake-100);
-  --brand-200:  var(--wada-burnt-lake-200);
-  --brand-300:  var(--wada-burnt-lake-300);
-  --brand-400:  #B55250;
-  --brand-500:  #943131;
-  --brand-600:  #A73E3E;
-  --brand-700:  #BE4F4F;
-  --brand-800:  #D86B6B;
+  /* Main Hero Brand in Dark Mode: Luminous Diamine Green */
+  --brand-50:   var(--wada-diamine-50);
+  --brand-100:  var(--wada-diamine-100);
+  --brand-200:  var(--wada-diamine-200);
+  --brand-300:  var(--wada-diamine-300);
+  --brand-400:  #3F9F68;
+  --brand-500:  #2CA864;
+  --brand-600:  #38B872;
+  --brand-700:  #1A7444;
+  --brand-800:  #145E36;
   --brand-grad-to: var(--wada-salmon-400);
 
-  --color-ring: var(--wada-salmon-400);
-  --color-primary: #943131;
-  --color-primary-hover: #A73E3E;
-  --color-primary-active: #7A2424;
-  --color-primary-foreground: #FFFDFB;
+  --color-ring: #2CA864;
+  --color-primary: #2CA864;
+  --color-primary-hover: #38B872;
+  --color-primary-active: #228A50;
+  --color-primary-foreground: #0A2416;
 
-  --color-success: #2EA866;
+  --color-success: #2CA864;
   --color-warning: var(--wada-salmon-400);
   --color-error: #E05D5D;
-  --color-info: #2EA866;
+  --color-info: #2CA864;
 
-  --color-sidebar: #1C1310;
-  --color-sidebar-border: #422C25;
+  --color-sidebar: #1A1111;
+  --color-sidebar-border: #442928;
   --text-secondary: #D8A37B;
-  --border-strong: #6E493B;
+  --border-strong: #D8A37B;
 
-  --teal: #2EA866;
-  --teal-bg: color-mix(in srgb, #2EA866 14%, transparent);
-  --teal-border: color-mix(in srgb, #2EA866 36%, transparent);
+  --teal: #2CA864;
+  --teal-bg: color-mix(in srgb, #2CA864 14%, transparent);
+  --teal-border: color-mix(in srgb, #2CA864 36%, transparent);
 
-  --success: #2EA866;
-  --success-bg: color-mix(in srgb, #2EA866 16%, transparent);
-  --success-border: color-mix(in srgb, #2EA866 38%, transparent);
+  --success: #2CA864;
+  --success-bg: color-mix(in srgb, #2CA864 16%, transparent);
+  --success-border: color-mix(in srgb, #2CA864 38%, transparent);
 
   --warning: var(--wada-salmon-400);
   --warning-bg: color-mix(in srgb, var(--wada-salmon-400) 16%, transparent);
@@ -512,17 +516,17 @@
   --danger-bg: color-mix(in srgb, #E05D5D 16%, transparent);
   --danger-border: color-mix(in srgb, #E05D5D 38%, transparent);
 
-  --info: #2EA866;
-  --info-bg: color-mix(in srgb, #2EA866 14%, transparent);
-  --info-border: color-mix(in srgb, #2EA866 36%, transparent);
+  --info: #2CA864;
+  --info-bg: color-mix(in srgb, #2CA864 14%, transparent);
+  --info-border: color-mix(in srgb, #2CA864 36%, transparent);
 
-  --violet: #A73E3E;
-  --violet-bg: color-mix(in srgb, #A73E3E 14%, transparent);
-  --violet-border: color-mix(in srgb, #A73E3E 36%, transparent);
+  --violet: var(--wada-burnt-lake-500);
+  --violet-bg: color-mix(in srgb, var(--wada-burnt-lake-500) 14%, transparent);
+  --violet-border: color-mix(in srgb, var(--wada-burnt-lake-500) 36%, transparent);
 
-  --topbar-bg: color-mix(in srgb, #16100E 92%, transparent);
-  --logo-gradient: linear-gradient(135deg, #A73E3E, var(--wada-salmon-400));
-  --ink-shadow: #0D0807;
+  --topbar-bg: color-mix(in srgb, #140E0E 92%, transparent);
+  --logo-gradient: linear-gradient(135deg, #2CA864, var(--wada-salmon-400));
+  --ink-shadow: #0C0808;
 }
 
 /* Beige · Light — warm paper, teal accent */
@@ -973,9 +977,9 @@ code { font-family: var(--font-mono); }
 .main-content {
   flex: 1;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1380px;
   margin: 0 auto;
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-8);
 }
 
 /* ── Provider badge ── */
@@ -1329,9 +1333,15 @@ code { font-family: var(--font-mono); }
 
 .split-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
+}
+
+@media (min-width: 1400px) {
+  .split-layout {
+    grid-template-columns: minmax(420px, 520px) minmax(0, 1fr);
+  }
 }
 
 .split-layout-wide {
@@ -1433,8 +1443,8 @@ code { font-family: var(--font-mono); }
 .job-site-missing { opacity: 0.45; }
 .job-site-missing:hover { opacity: 0.85; }
 
-/* Below ~400px of column width there is no room for one row. */
-@container app-list (max-width: 400px) {
+/* When the list column is genuinely narrow (<350px) on small screens, wrap actions. */
+@container app-list (max-width: 350px) {
   .app-list-item {
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
@@ -1448,7 +1458,7 @@ code { font-family: var(--font-mono); }
 
 /* Fallback for browsers without container queries. */
 @supports not (container-type: inline-size) {
-  @media (min-width: 901px) and (max-width: 1200px) {
+  @media (max-width: 600px) {
     .app-list-item {
       grid-template-columns: auto minmax(0, 1fr);
       grid-template-areas:
@@ -2179,10 +2189,16 @@ code { font-family: var(--font-mono); }
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-5);
 }
 .stat-grid > * { min-width: 0; }
+
+@media (min-width: 1100px) {
+  .stat-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
 
 /* Stat cards double as navigation buttons (dashboard + admin overview). */
 .stat-card-btn {
@@ -2199,9 +2215,9 @@ code { font-family: var(--font-mono); }
 .stat-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
+  gap: 8px;
+  padding: 22px 24px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);
   background: var(--color-card);
   transition: var(--ease);
@@ -2209,8 +2225,8 @@ code { font-family: var(--font-mono); }
 .stat-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); transform: translateY(-2px); }
 
 .stat-icon {
-  width: 38px; height: 38px;
-  border-radius: var(--radius-sm);
+  width: 44px; height: 44px;
+  border-radius: var(--radius-md);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: var(--space-2);
 }
@@ -2224,13 +2240,13 @@ code { font-family: var(--font-mono); }
 [data-theme="dark"] .stat-purple { background: color-mix(in srgb, var(--color-indigo-500) 16%, transparent); color: var(--color-indigo-300); border-color: color-mix(in srgb, var(--color-indigo-500) 40%, transparent); }
 [data-theme="dark"] .stat-green  { background: color-mix(in srgb, var(--color-green-500) 14%, transparent); color: var(--color-green-500); border-color: color-mix(in srgb, var(--color-green-500) 38%, transparent); }
 
-.stat-value { font-family: var(--font-display); font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-foreground); }
-.stat-label { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font-family: var(--font-display); font-size: 2.15rem; font-weight: var(--font-weight-bold); line-height: 1.1; color: var(--color-foreground); }
+.stat-label { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 .dash-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-5);
+  grid-template-columns: 1.25fr 1fr;
+  gap: var(--space-6);
   align-items: start;
 }
 /* Grid items default to min-width:auto, which refuses to shrink below the
@@ -2424,21 +2440,52 @@ code { font-family: var(--font-mono); }
 /* Fixed preview swatches (raw values so both options are visible at once). */
 .swatch-blue      { background: var(--color-vermilion-600); }
 .swatch-purple    { background: var(--color-indigo-600); }
-.swatch-teabook   { background: linear-gradient(135deg, #802626 0%, #D8A37B 50%, #1A7444 100%); }
+.swatch-teabook   { background: linear-gradient(135deg, #1A7444 0%, #D8A37B 55%, #802626 100%); }
 .swatch-editorial { background: var(--color-vermilion-600); }
 .swatch-beige     { background: #629FAD; }
 .swatch-noir      { background: #D4AF6E; }
 
-/* Japanese Teabook 1 aesthetic refinements */
+/* Japanese Teabook 1 aesthetic refinements:
+   Diamine Green (#1A7444) as main brand hero;
+   Ochraceous Salmon (#D8A37B) as warm paper canvas & tiles;
+   Pale Burnt Lake (#802626) as lacquer contrast accents */
 [data-style="teabook"] .side-nav-btn.active {
-  box-shadow: inset 3px 0 0 var(--wada-burnt-lake-500);
+  box-shadow: inset 3px 0 0 var(--wada-diamine-500);
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+[data-style="teabook"][data-theme="dark"] .side-nav-btn.active {
+  box-shadow: inset 3px 0 0 #2CA864;
+  background: color-mix(in srgb, #2CA864 16%, transparent);
+  color: #38B872;
 }
 [data-style="teabook"] .logo-dot {
-  background: var(--wada-burnt-lake-500);
-  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--wada-diamine-500);
+  background: var(--wada-diamine-500);
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--wada-salmon-400);
+}
+[data-style="teabook"][data-theme="dark"] .logo-dot {
+  background: #2CA864;
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--wada-salmon-400);
+}
+[data-style="teabook"] .card {
+  box-shadow: 0 2px 8px rgba(40, 27, 21, 0.04);
 }
 [data-style="teabook"] .card:hover {
   border-color: var(--border-strong);
+  box-shadow: 0 6px 18px rgba(216, 163, 123, 0.18);
+}
+[data-style="teabook"] .stat-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 6px 20px rgba(26, 116, 68, 0.14);
+}
+[data-style="teabook"] .app-list-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 16px rgba(26, 116, 68, 0.12);
+}
+[data-style="teabook"] .app-list-item.selected {
+  border-color: var(--color-primary);
+  background: var(--brand-50);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 /* Optional-themes toggle + style picker */

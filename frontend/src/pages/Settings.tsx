@@ -23,7 +23,7 @@ const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
 ]
 
 const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
-  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Lacquer, Salmon, Matcha', swatch: 'swatch-teabook' },
+  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Matcha (Main), Salmon, Lacquer', swatch: 'swatch-teabook' },
   { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
   { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
   { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
@@ -316,24 +316,24 @@ export function SettingsView({
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
-                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#802626', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#1A7444', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Pale Burnt Lake</div>
-                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#802626 · Primary / Lacquer Spine</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Diamine Green</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#1A7444 · Main Brand Hero / Primary Actions</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
                   <span style={{ width: 22, height: 22, borderRadius: 4, background: '#D8A37B', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Ochraceous Salmon</div>
-                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#D8A37B · Washi Paper / Frames</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#D8A37B · Washi Paper / Card Tiles & Borders</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
-                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#1A7444', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#802626', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Diamine Green</div>
-                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#1A7444 · Matcha Accents & ATS Fit</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Pale Burnt Lake</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#802626 · Cinnabar Lacquer Accents & Alerts</div>
                   </div>
                 </div>
               </div>
