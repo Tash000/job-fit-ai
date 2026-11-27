@@ -23,6 +23,7 @@ const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
 ]
 
 const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
+  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Lacquer, Salmon, Matcha', swatch: 'swatch-teabook' },
   { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
   { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
   { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
@@ -266,12 +267,12 @@ export function SettingsView({
             })}
           </div>
 
-          <div className="settings-section-title" style={{ marginTop: 4 }}>Optional themes</div>
-          <p className="text-xs text-muted">Turn on the optional Beige and Noir styles — each has its own designed light and dark mode. Turn off to keep the classic theme.</p>
+          <div className="settings-section-title" style={{ marginTop: 4 }}>Custom themes & styles</div>
+          <p className="text-xs text-muted">Handcrafted color harmonies with dedicated light and dark modes — featuring Japanese Teabook 1 (Sanzo Wada #217), Beige, and Noir.</p>
           <div className="optional-row">
             <span className="optional-label">
-              <strong>Enable optional themes</strong>
-              <small>Beige · warm paper — Noir · deep navy</small>
+              <strong>Enable custom themes & styles</strong>
+              <small>Japanese Teabook 1 · Beige · Noir</small>
             </span>
             <button
               type="button"
@@ -302,6 +303,40 @@ export function SettingsView({
                   </span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {optionalThemes && style === 'teabook' && (
+            <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 'var(--radius-md)', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-foreground)', marginBottom: 4 }}>
+                Sanzo Wada (1933) · Combination #217 (Japanese Teabook 1)
+              </div>
+              <p className="text-xs text-muted" style={{ marginBottom: 12 }}>
+                Sourced from <em>A Dictionary of Color Combinations</em>. Overhaul using strictly three color palettes:
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#802626', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Pale Burnt Lake</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#802626 · Primary / Lacquer Spine</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#D8A37B', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Ochraceous Salmon</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#D8A37B · Washi Paper / Frames</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#1A7444', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Diamine Green</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#1A7444 · Matcha Accents & ATS Fit</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

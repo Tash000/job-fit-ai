@@ -66,6 +66,43 @@
   --color-teal-500:  #177E7E;
   --color-teal-600:  #126262;
 
+  /* Sanzo Wada (1933) Combination #217 — "Japanese Teabook 1" triad primitives */
+  /* 1. Pale Burnt Lake (#802626) — lacquer crimson & deep bookbinding spine */
+  --wada-burnt-lake-50:   #FDF5F5;
+  --wada-burnt-lake-100:  #F9E7E7;
+  --wada-burnt-lake-200:  #EFCAC9;
+  --wada-burnt-lake-300:  #DEA3A1;
+  --wada-burnt-lake-400:  #B55250;
+  --wada-burnt-lake-500:  #802626; /* Primary Pale Burnt Lake */
+  --wada-burnt-lake-600:  #6D1E1E;
+  --wada-burnt-lake-700:  #561616;
+  --wada-burnt-lake-800:  #3E0E0E;
+  --wada-burnt-lake-900:  #260808;
+
+  /* 2. Ochraceous Salmon (#D8A37B) — warm washi paper, terracotta tones, subtle frames */
+  --wada-salmon-50:       #FAF6F2;
+  --wada-salmon-100:      #F5EDE3;
+  --wada-salmon-200:      #EBD9C6;
+  --wada-salmon-300:      #DFC4AA;
+  --wada-salmon-400:      #D8A37B; /* Primary Ochraceous Salmon */
+  --wada-salmon-500:      #C58C63;
+  --wada-salmon-600:      #A57049;
+  --wada-salmon-700:      #7C5233;
+  --wada-salmon-800:      #523520;
+  --wada-salmon-900:      #2D1B0F;
+
+  /* 3. Diamine Green (#1A7444) — matcha & copper pine needle indicators */
+  --wada-diamine-50:      #F0F8F3;
+  --wada-diamine-100:     #DEF1E5;
+  --wada-diamine-200:     #BDE2CB;
+  --wada-diamine-300:     #88CC9F;
+  --wada-diamine-400:     #3F9F68;
+  --wada-diamine-500:     #1A7444; /* Primary Diamine Green */
+  --wada-diamine-600:     #145E36;
+  --wada-diamine-700:     #0F4729;
+  --wada-diamine-800:     #0A301B;
+  --wada-diamine-900:     #05180D;
+
   /* Spacing (4px base) */
   --space-0:   0;
   --space-px:  1px;
@@ -343,11 +380,150 @@
 }
 
 /* ── 2c. OPTIONAL STYLE THEMES (opt-in via Settings) ──────────────────────
-   Beige & Noir — each with its own designed light AND dark mode, per the
-   60/30/10 rule. Enabled from Settings → Appearance → Optional themes; when
-   the toggle is off, `data-style` stays 'editorial' and the classic look
-   above applies unchanged.
+   Japanese Teabook 1, Beige & Noir — each with its own designed light AND dark mode.
+   Enabled from Settings → Appearance.
    ═══════════════════════════════════════════════════════════════════════ */
+
+/* Japanese Teabook 1 · Light — Sanzo Wada (1933) Triad #217:
+   Pale Burnt Lake (#802626) · Ochraceous Salmon (#D8A37B) · Diamine Green (#1A7444)
+   Warm artisanal washi canvas, deep cinnabar lacquer actions, matcha indicators */
+[data-style="teabook"] {
+  --color-background: #FAF4EE;
+  --color-foreground: #2A1711;
+  --color-card: #FFFDFB;
+  --color-card-foreground: #2A1711;
+  --color-muted: #F3E7DC;
+  --color-muted-foreground: #785743;
+  --color-secondary: #F2E6DB;
+  --color-secondary-foreground: #2A1711;
+  --color-border: #E6D2C0;
+  --color-input: #FAF4EE;
+
+  --brand-50:   var(--wada-burnt-lake-50);
+  --brand-100:  var(--wada-burnt-lake-100);
+  --brand-200:  var(--wada-burnt-lake-200);
+  --brand-300:  var(--wada-burnt-lake-300);
+  --brand-400:  var(--wada-burnt-lake-400);
+  --brand-500:  var(--wada-burnt-lake-500);
+  --brand-600:  var(--wada-burnt-lake-600);
+  --brand-700:  var(--wada-burnt-lake-700);
+  --brand-800:  var(--wada-burnt-lake-800);
+  --brand-grad-to: var(--wada-salmon-400);
+
+  --color-ring: var(--wada-burnt-lake-500);
+  --color-primary: var(--wada-burnt-lake-500);
+  --color-primary-hover: var(--wada-burnt-lake-600);
+  --color-primary-active: var(--wada-burnt-lake-700);
+  --color-primary-foreground: #FFFDFB;
+
+  --color-success: var(--wada-diamine-500);
+  --color-warning: var(--wada-salmon-600);
+  --color-error: var(--wada-burnt-lake-500);
+  --color-info: var(--wada-diamine-500);
+
+  --color-sidebar: #F6ECE1;
+  --color-sidebar-border: #E6D2C0;
+  --text-secondary: #6B4934;
+  --border-strong: var(--wada-salmon-400);
+
+  --teal: var(--wada-diamine-500);
+  --teal-bg: var(--wada-diamine-50);
+  --teal-border: var(--wada-diamine-200);
+
+  --success: var(--wada-diamine-500);
+  --success-bg: var(--wada-diamine-100);
+  --success-border: var(--wada-diamine-200);
+
+  --warning: var(--wada-salmon-600);
+  --warning-bg: var(--wada-salmon-100);
+  --warning-border: var(--wada-salmon-300);
+
+  --danger: var(--wada-burnt-lake-500);
+  --danger-bg: var(--wada-burnt-lake-100);
+  --danger-border: var(--wada-burnt-lake-200);
+
+  --info: var(--wada-diamine-500);
+  --info-bg: var(--wada-diamine-50);
+  --info-border: var(--wada-diamine-200);
+
+  --violet: var(--wada-burnt-lake-600);
+  --violet-bg: var(--wada-burnt-lake-50);
+  --violet-border: var(--wada-burnt-lake-200);
+
+  --topbar-bg: color-mix(in srgb, #FAF4EE 92%, transparent);
+  --logo-gradient: linear-gradient(135deg, var(--wada-burnt-lake-500), var(--wada-salmon-400));
+  --ink-shadow: #2A1711;
+}
+
+/* Japanese Teabook 1 · Dark — deep roasted lacquer tea-chest canvas,
+   unbleached silk text, salmon warm borders, luminous matcha indicators */
+[data-style="teabook"][data-theme="dark"] {
+  --color-background: #16100E;
+  --color-foreground: #F5ECE3;
+  --color-card: #221714;
+  --color-card-foreground: #F5ECE3;
+  --color-muted: #2C1E1A;
+  --color-muted-foreground: #D8A37B;
+  --color-secondary: #261B17;
+  --color-secondary-foreground: #F5ECE3;
+  --color-border: #422C25;
+  --color-input: #1A1210;
+
+  --brand-50:   var(--wada-burnt-lake-50);
+  --brand-100:  var(--wada-burnt-lake-100);
+  --brand-200:  var(--wada-burnt-lake-200);
+  --brand-300:  var(--wada-burnt-lake-300);
+  --brand-400:  #B55250;
+  --brand-500:  #943131;
+  --brand-600:  #A73E3E;
+  --brand-700:  #BE4F4F;
+  --brand-800:  #D86B6B;
+  --brand-grad-to: var(--wada-salmon-400);
+
+  --color-ring: var(--wada-salmon-400);
+  --color-primary: #943131;
+  --color-primary-hover: #A73E3E;
+  --color-primary-active: #7A2424;
+  --color-primary-foreground: #FFFDFB;
+
+  --color-success: #2EA866;
+  --color-warning: var(--wada-salmon-400);
+  --color-error: #E05D5D;
+  --color-info: #2EA866;
+
+  --color-sidebar: #1C1310;
+  --color-sidebar-border: #422C25;
+  --text-secondary: #D8A37B;
+  --border-strong: #6E493B;
+
+  --teal: #2EA866;
+  --teal-bg: color-mix(in srgb, #2EA866 14%, transparent);
+  --teal-border: color-mix(in srgb, #2EA866 36%, transparent);
+
+  --success: #2EA866;
+  --success-bg: color-mix(in srgb, #2EA866 16%, transparent);
+  --success-border: color-mix(in srgb, #2EA866 38%, transparent);
+
+  --warning: var(--wada-salmon-400);
+  --warning-bg: color-mix(in srgb, var(--wada-salmon-400) 16%, transparent);
+  --warning-border: color-mix(in srgb, var(--wada-salmon-400) 38%, transparent);
+
+  --danger: #E05D5D;
+  --danger-bg: color-mix(in srgb, #E05D5D 16%, transparent);
+  --danger-border: color-mix(in srgb, #E05D5D 38%, transparent);
+
+  --info: #2EA866;
+  --info-bg: color-mix(in srgb, #2EA866 14%, transparent);
+  --info-border: color-mix(in srgb, #2EA866 36%, transparent);
+
+  --violet: #A73E3E;
+  --violet-bg: color-mix(in srgb, #A73E3E 14%, transparent);
+  --violet-border: color-mix(in srgb, #A73E3E 36%, transparent);
+
+  --topbar-bg: color-mix(in srgb, #16100E 92%, transparent);
+  --logo-gradient: linear-gradient(135deg, #A73E3E, var(--wada-salmon-400));
+  --ink-shadow: #0D0807;
+}
 
 /* Beige · Light — warm paper, teal accent */
 [data-style="beige"] {
@@ -2246,11 +2422,24 @@ code { font-family: var(--font-mono); }
   flex-shrink: 0;
 }
 /* Fixed preview swatches (raw values so both options are visible at once). */
-.swatch-blue   { background: var(--color-vermilion-600); }
-.swatch-purple { background: var(--color-indigo-600); }
+.swatch-blue      { background: var(--color-vermilion-600); }
+.swatch-purple    { background: var(--color-indigo-600); }
+.swatch-teabook   { background: linear-gradient(135deg, #802626 0%, #D8A37B 50%, #1A7444 100%); }
 .swatch-editorial { background: var(--color-vermilion-600); }
 .swatch-beige     { background: #629FAD; }
 .swatch-noir      { background: #D4AF6E; }
+
+/* Japanese Teabook 1 aesthetic refinements */
+[data-style="teabook"] .side-nav-btn.active {
+  box-shadow: inset 3px 0 0 var(--wada-burnt-lake-500);
+}
+[data-style="teabook"] .logo-dot {
+  background: var(--wada-burnt-lake-500);
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--wada-diamine-500);
+}
+[data-style="teabook"] .card:hover {
+  border-color: var(--border-strong);
+}
 
 /* Optional-themes toggle + style picker */
 .optional-row {

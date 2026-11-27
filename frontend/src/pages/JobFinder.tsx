@@ -245,9 +245,9 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
               <button
                 type="button"
                 onClick={() => handleCopy(profile.boolean_query, 'query')}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-card)', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-card)', color: 'var(--color-foreground)', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer' }}
               >
-                {copiedQuery ? <CheckIcon size={14} color="#15803d" /> : <CopyIcon size={14} />}
+                {copiedQuery ? <CheckIcon size={14} color="var(--success)" /> : <CopyIcon size={14} />}
                 {copiedQuery ? 'Copied' : 'Copy Boolean Query'}
               </button>
             </div>
@@ -391,7 +391,7 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
                 }}
                 title="Copy search link"
               >
-                {copiedUrl === b.id ? <CheckIcon size={14} color="#15803d" /> : <CopyIcon size={14} />}
+                {copiedUrl === b.id ? <CheckIcon size={14} color="var(--success)" /> : <CopyIcon size={14} />}
               </button>
             </div>
           </div>
@@ -469,7 +469,7 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
         </form>
 
         {pipelineError && (
-          <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '0.85rem' }}>
+          <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', fontSize: '0.85rem' }}>
             {pipelineError}
           </div>
         )}
@@ -490,11 +490,11 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>ATS MATCH</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: pipelineResult.ats_score > 70 ? '#15803d' : 'var(--accent)' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: pipelineResult.ats_score > 70 ? 'var(--success)' : 'var(--accent)' }}>
                     {pipelineResult.ats_score}%
                   </div>
                 </div>
-                <div style={{ padding: '6px 10px', borderRadius: 6, background: pipelineResult.is_approved ? '#dcfce7' : '#fef3c7', color: pipelineResult.is_approved ? '#15803d' : '#b45309', fontSize: '0.76rem', fontWeight: 600 }}>
+                <div style={{ padding: '6px 10px', borderRadius: 6, background: pipelineResult.is_approved ? 'var(--success-bg)' : 'var(--warning-bg)', color: pipelineResult.is_approved ? 'var(--success)' : 'var(--warning)', border: `1px solid ${pipelineResult.is_approved ? 'var(--success-border)' : 'var(--warning-border)'}`, fontSize: '0.76rem', fontWeight: 600 }}>
                   {pipelineResult.is_approved ? 'Truth-Verified' : 'Revised'}
                 </div>
               </div>
@@ -503,12 +503,12 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
             {/* Keyword badges */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
               {pipelineResult.keyword_matches.map((k, i) => (
-                <span key={i} style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
+                <span key={i} style={{ background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: 4, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
                   ✓ {k}
                 </span>
               ))}
               {pipelineResult.missing_keywords.map((k, i) => (
-                <span key={i} style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 4, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
+                <span key={i} style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger-border)', padding: '2px 8px', borderRadius: 4, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
                   ✕ {k}
                 </span>
               ))}
@@ -546,7 +546,7 @@ export function JobFinderView({ onNavigateToApps }: { onNavigateToApps?: () => v
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-card)', fontSize: '0.78rem', cursor: 'pointer' }}
                 >
-                  {copiedLetter ? <CheckIcon size={13} color="#15803d" /> : <CopyIcon size={13} />}
+                  {copiedLetter ? <CheckIcon size={13} color="var(--success)" /> : <CopyIcon size={13} />}
                   {copiedLetter ? 'Copied Letter' : 'Copy Letter'}
                 </button>
               </div>

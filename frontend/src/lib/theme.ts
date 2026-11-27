@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from 'react'
 export type Theme = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 export type Accent = 'blue' | 'purple'
-/** Theme style: 'editorial' is the classic look; 'beige' and 'noir' are
- *  optional styles with their own designed light AND dark modes. */
-export type Style = 'editorial' | 'beige' | 'noir'
+/** Theme style: 'teabook' (Sanzo Wada #217 triad: Pale Burnt Lake, Ochraceous
+ *  Salmon, Diamine Green), 'editorial' classic, or 'beige' / 'noir'. */
+export type Style = 'teabook' | 'editorial' | 'beige' | 'noir'
 
 const THEME_KEY = 'vitralume-theme'
 const ACCENT_KEY = 'vitralume-accent'
@@ -25,7 +25,7 @@ function parseAccent(v: string | null): Accent | null {
 }
 
 function parseStyle(v: string | null): Style | null {
-  return v === 'editorial' || v === 'beige' || v === 'noir' ? v : null
+  return v === 'teabook' || v === 'editorial' || v === 'beige' || v === 'noir' ? v : null
 }
 
 function parseOptional(v: string | null): boolean | null {
@@ -62,28 +62,25 @@ function getInitialAccent(): Accent {
 
 function getInitialStyle(): Style {
   try {
-    // ?style=editorial|beige|noir in the URL overrides the saved preference.
+    // ?style=teabook|editorial|beige|noir in the URL overrides the saved preference.
     return (
       parseStyle(new URLSearchParams(window.location.search).get('style'))
       ?? parseStyle(localStorage.getItem(STYLE_KEY))
-      ?? 'editorial'
+      ?? 'teabook'
     )
   } catch {
-    return 'editorial'
+    return 'teabook'
   }
 }
 
 function getInitialOptionalThemes(): boolean {
   try {
-    // ?style=beige|noir in the URL implies the optional themes are enabled
-    // for that session (a deep link should render the requested style).
+    // ?style=teabook|beige|noir in the URL implies optional themes are enabled.
     const urlStyle = new URLSearchParams(window.location.search).get('style')
-    if (urlStyle === 'beige' || urlStyle === 'noir') return true
-    // Default OFF → the classic theme stays the only option until the user
-    // explicitly turns the optional styles on in Settings.
-    return parseOptional(localStorage.getItem(OPTIONAL_KEY)) ?? false
+    if (urlStyle === 'teabook' || urlStyle === 'beige' || urlStyle === 'noir') return true
+    return parseOptional(localStorage.getItem(OPTIONAL_KEY)) ?? true
   } catch {
-    return false
+    return true
   }
 }
 
@@ -94,9 +91,9 @@ export interface Appearance {
   accent: Accent
   /** The theme actually applied right now. */
   resolved: ResolvedTheme
-  /** Theme style — 'editorial' classic, or optional 'beige'/'noir'. */
+  /** Theme style — 'teabook' Japanese Teabook 1, 'editorial' classic, or optional 'beige'/'noir'. */
   style: Style
-  /** Whether the optional Beige/Noir styles are enabled at all. */
+  /** Whether custom styles & themes are enabled. */
   optionalThemes: boolean
   setTheme: (t: Theme) => void
   setAccent: (a: Accent) => void
@@ -107,6 +104,7 @@ export interface Appearance {
 
 /** Canvas color per style, used for the browser chrome (meta theme-color). */
 const CANVAS: Record<Style, Record<ResolvedTheme, string>> = {
+  teabook: { light: '#FAF4EE', dark: '#16100E' },
   editorial: { light: '#F3EEE4', dark: '#161310' },
   beige: { light: '#EDEDCE', dark: '#211C14' },
   noir: { light: '#EFE4D2', dark: '#131D4F' },
