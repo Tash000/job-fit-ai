@@ -1,32 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="fav-diamond" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6B84CD;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#4E63B8;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#9B84E0;stop-opacity:1" />
+    <!-- Background: Pure Deep Midnight Indigo #051230 -->
+    <linearGradient id="fav-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1A3D"/>
+      <stop offset="100%" stop-color="#040C20"/>
     </linearGradient>
-    <radialGradient id="fav-shine">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
-      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
-    </radialGradient>
+
+    <!-- Light Facet: Gilded Starlight Gold -->
+    <linearGradient id="fav-light" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF0D6"/>
+      <stop offset="100%" stop-color="#E2A26B"/>
+    </linearGradient>
+
+    <!-- Shadow Facet: Carmine Red -->
+    <linearGradient id="fav-shadow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E0254A"/>
+      <stop offset="100%" stop-color="#8A0C22"/>
+    </linearGradient>
   </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#fav-bg)"/>
   
-  <!-- Main diamond -->
-  <path d="M 24 6 L 42 24 L 24 42 L 6 24 Z" 
-        fill="url(#fav-diamond)"/>
-  
-  <!-- Left facet -->
-  <path d="M 24 6 L 33 15 L 24 24 L 15 15 Z" 
-        fill="url(#fav-diamond)" 
-        opacity="0.7"/>
-  
-  <!-- Top shine -->
-  <circle cx="24" cy="14" r="6" fill="url(#fav-shine)"/>
-  
-  <!-- Contour -->
-  <path d="M 24 6 L 42 24 L 24 42 L 6 24 Z" 
-        fill="none" 
-        stroke="url(#fav-diamond)" 
-        stroke-width="0.5" 
-        opacity="0.4"/>
+  <!-- Right Shadow Facet -->
+  <path d="M 160 120 L 224 120 V 132 C 210 133, 198 138, 194 150 L 256 350 L 256 404 Z" fill="url(#fav-shadow)"/>
+  <path d="M 256 350 L 256 404 L 272 404 L 382 150 C 378 138, 386 133, 400 132 V 120 H 378 L 360 150 Z" fill="url(#fav-shadow)"/>
+
+  <!-- Left Illuminated Facet -->
+  <path d="M 96 120 H 160 L 256 404 H 236 L 136 150 C 132 138, 118 133, 96 132 Z" fill="url(#fav-light)"/>
+  <path d="M 256 350 L 360 150 C 364 138, 356 133, 342 132 V 120 H 378 L 360 150 Z" fill="url(#fav-light)"/>
+
+  <!-- Center Ridge -->
+  <line x1="160" y1="120" x2="256" y2="404" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
 </svg>
