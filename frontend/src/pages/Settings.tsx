@@ -25,6 +25,7 @@ const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
 const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
   { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
   { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
+  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Matcha (Main), Salmon, Lacquer', swatch: 'swatch-teabook' },
   { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
 ]
 
@@ -146,7 +147,7 @@ export function SettingsView({
   /** Settings already fetched by the app shell — renders instantly. */
   initial?: SettingsData | null
 }) {
-  const { theme, accent, style, optionalThemes, setTheme, setAccent, setStyle, setOptionalThemes } = useAppearance()
+  const { theme, accent, style, setTheme, setAccent, setStyle } = useAppearance()
   // Start from the app shell's copy (or cache) so the page is instant, then
   // refresh in the background to stay fresh.
   const [s, setS] = useState<SettingsData | null>(initial ?? null)
@@ -266,49 +267,62 @@ export function SettingsView({
             })}
           </div>
 
-          <div className="settings-section-title" style={{ marginTop: 4 }}>Optional themes</div>
-          <p className="text-xs text-muted">Turn on the optional Beige and Noir styles — each has its own designed light and dark mode. Turn off to keep the classic theme.</p>
-          <div className="optional-row">
-            <span className="optional-label">
-              <strong>Enable optional themes</strong>
-              <small>Beige · warm paper — Noir · deep navy</small>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={optionalThemes}
-              className={`settings-switch${optionalThemes ? ' on' : ''}`}
-              onClick={() => setOptionalThemes(!optionalThemes)}
-            >
-              <span className="settings-switch-knob" />
-            </button>
+          <div className="settings-section-title" style={{ marginTop: 16 }}>Theme Style</div>
+          <p className="text-xs text-muted">Handcrafted color harmonies with dedicated light and dark modes.</p>
+          <div className="flex gap-8 flex-wrap">
+            {STYLES.map(st => (
+              <button
+                key={st.value}
+                className={`accent-swatch ${style === st.value ? 'active' : ''}`}
+                onClick={() => setStyle(st.value)}
+              >
+                <span className={`swatch ${st.swatch}`} />
+                <span>
+                  {st.label}
+                  <small className="swatch-desc">{st.desc}</small>
+                </span>
+              </button>
+            ))}
           </div>
 
-          {optionalThemes && (
-            <div className="settings-section-title">Theme style</div>
-          )}
-          {optionalThemes && (
-            <div className="flex gap-8 flex-wrap">
-              {STYLES.map(st => (
-                <button
-                  key={st.value}
-                  className={`accent-swatch ${style === st.value ? 'active' : ''}`}
-                  onClick={() => setStyle(st.value)}
-                >
-                  <span className={`swatch ${st.swatch}`} />
-                  <span>
-                    {st.label}
-                    <small className="swatch-desc">{st.desc}</small>
-                  </span>
-                </button>
-              ))}
+          {style === 'teabook' && (
+            <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 'var(--radius-md)', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-foreground)', marginBottom: 4 }}>
+                Sanzo Wada (1933) · Combination #217 (Japanese Teabook 1)
+              </div>
+              <p className="text-xs text-muted" style={{ marginBottom: 12 }}>
+                Sourced from <em>A Dictionary of Color Combinations</em>. Overhaul using strictly three color palettes:
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#1A7444', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Diamine Green</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#1A7444 · Main Brand Hero / Primary Actions</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#D8A37B', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Ochraceous Salmon</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#D8A37B · Washi Paper / Card Tiles & Borders</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 4, background: '#802626', flexShrink: 0, border: '1px solid rgba(0,0,0,0.15)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-foreground)' }}>Pale Burnt Lake</div>
+                    <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>#802626 · Cinnabar Lacquer Accents & Alerts</div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {(!optionalThemes || style === 'editorial') && (
+          {style === 'editorial' && (
             <>
-              <div className="settings-section-title">Accent Color</div>
-              <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts.</p>
+              <div className="settings-section-title" style={{ marginTop: 16 }}>Accent Color</div>
+              <p className="text-xs text-muted">The brand color used for buttons, highlights, and charts in Editorial style.</p>
               <div className="flex gap-8 flex-wrap">
                 {ACCENTS.map(a => (
                   <button
