@@ -6,11 +6,15 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+interface InstallButtonProps {
+  compact?: boolean
+}
+
 /**
  * PWA Install Action with native prompt handling and browser instructions fallback.
  * Guarantees a visible, clickable button on all platforms.
  */
-export function InstallButton() {
+export function InstallButton({ compact = false }: InstallButtonProps = {}) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [isStandalone, setIsStandalone] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
@@ -55,6 +59,7 @@ export function InstallButton() {
   }
 
   if (isStandalone) {
+    if (compact) return null
     return (
       <div
         style={{
@@ -63,7 +68,7 @@ export function InstallButton() {
           gap: 6,
           padding: '6px 12px',
           borderRadius: 'var(--radius-sm)',
-          background: 'var(--color-primary-soft, rgba(34,197,94,0.12))',
+          background: 'var(--color-primary-soft, rgba(35,134,54,0.12))',
           border: '1px solid var(--color-primary)',
           color: 'var(--color-primary)',
           fontSize: '0.82rem',
@@ -73,6 +78,22 @@ export function InstallButton() {
         <CheckCircle2Icon size={14} />
         Vitralume is installed & running as standalone app
       </div>
+    )
+  }
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        className="btn btn-primary btn-bubble install-btn-compact"
+        onClick={handleInstallClick}
+        title="Install Vitralume for one-tap launch and offline support"
+        aria-label="Install Vitralume App"
+      >
+        <DownloadIcon size={14} />
+        <span className="install-text-desktop">Install App</span>
+        <span className="install-text-mobile">Install</span>
+      </button>
     )
   }
 
