@@ -24,6 +24,18 @@ except ImportError:
     _genai = None
     _GENAI_AVAILABLE = False
 
+try:
+    from openai import OpenAI as _OpenAI
+    _OPENAI_AVAILABLE = True
+except ImportError:
+    _OpenAI = None
+    _OPENAI_AVAILABLE = False
+
+try:
+    import config
+except ImportError:
+    config = None
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. Pipeline State Definition
@@ -37,6 +49,8 @@ class ApplicationWorkflowState(TypedDict, total=False):
     role_title: str
     max_iterations: int
     api_keys: List[str]
+    nim_keys: List[str]
+    preferred_provider: str
 
     # Agent outputs & intermediate artifacts
     extracted_requirements: List[str]
@@ -57,24 +71,97 @@ class ApplicationWorkflowState(TypedDict, total=False):
 # 2. Heuristic & LLM Helper Utilities
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _call_gemini_simple(prompt: str, api_keys: Optional[List[str]] = None) -> Optional[str]:
-    """Call Gemini if available and keys are provided."""
-    valid_keys = [k for k in (api_keys or []) if k.strip()]
-    if not (_GENAI_AVAILABLE and valid_keys):
+def _call_llm(
+    prompt: str,
+    api_keys: Optional[List[str]] = None,
+    nim_keys: Optional[List[str]] = None,
+    preferred_provider: str = "auto",
+) -> Optional[str]:
+    """
+    Call LLM with dual-provider support (Google Gemini + NVIDIA NIM).
+    Allows running the LangGraph agent pipeline on either provider,
+    or isolating agent workloads via config.AGENT_API_KEY.
+    """
+    gemini_candidates = [k for k in (api_keys or []) if k.strip()]
+    nim_candidates = [k for k in (nim_keys or []) if k.strip()]
+
+    # Inject dedicated AGENT_API_KEY if configured
+    if config and getattr(config, "AGENT_API_KEY", ""):
+        agent_key = config.AGENT_API_KEY.strip()
+        if agent_key.startswith("nvapi-") or "integrate.api.nvidia" in agent_key:
+            if agent_key not in nim_candidates:
+                nim_candidates.insert(0, agent_key)
+        else:
+            if agent_key not in gemini_candidates:
+                gemini_candidates.insert(0, agent_key)
+
+    def _try_nim() -> Optional[str]:
+        if not (_OPENAI_AVAILABLE and nim_candidates):
+            return None
+        models = [
+            "meta/llama-3.3-70b-instruct",
+            "meta/llama-3.1-8b-instruct",
+            "mistralai/mistral-7b-instruct-v0.3",
+        ]
+        for key in nim_candidates:
+            for model_name in models:
+                try:
+                    client = _OpenAI(api_key=key, base_url="https://integrate.api.nvidia.com/v1")
+                    resp = client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.6,
+                        max_tokens=4096,
+                    )
+                    content = resp.choices[0].message.content
+                    if content and content.strip():
+                        return content.strip()
+                except Exception:
+                    continue
         return None
 
-    for key in valid_keys:
-        try:
-            client = _genai.Client(api_key=key)
-            resp = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-            )
-            if hasattr(resp, "text") and resp.text:
-                return resp.text.strip()
-        except Exception:
-            continue
-    return None
+    def _try_gemini() -> Optional[str]:
+        if not (_GENAI_AVAILABLE and gemini_candidates):
+            return None
+        for key in gemini_candidates:
+            for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+                try:
+                    client = _genai.Client(api_key=key)
+                    resp = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                    )
+                    if hasattr(resp, "text") and resp.text:
+                        return resp.text.strip()
+                except Exception:
+                    continue
+        return None
+
+    if preferred_provider == "nim":
+        res = _try_nim()
+        if res:
+            return res
+        return _try_gemini()
+    elif preferred_provider == "gemini":
+        res = _try_gemini()
+        if res:
+            return res
+        return _try_nim()
+    else:
+        # Auto: if Gemini keys present, try Gemini then NIM; otherwise try NIM
+        if gemini_candidates:
+            res = _try_gemini()
+            if res:
+                return res
+            return _try_nim()
+        elif nim_candidates:
+            return _try_nim()
+        return None
+
+
+def _call_gemini_simple(prompt: str, api_keys: Optional[List[str]] = None) -> Optional[str]:
+    """Backward-compatible wrapper for Gemini / LLM calls."""
+    return _call_llm(prompt, api_keys=api_keys)
 
 
 def _heuristic_extract_job(text: str) -> Dict[str, Any]:
@@ -139,6 +226,8 @@ def requirement_extractor_node(state: ApplicationWorkflowState) -> Dict[str, Any
     """Agent 1: Extracts structured requirements, skills, and target role."""
     job_text = state.get("job_text", "")
     api_keys = state.get("api_keys", [])
+    nim_keys = state.get("nim_keys", [])
+    preferred_provider = state.get("preferred_provider", "auto")
 
     role = state.get("role_title")
     company = state.get("company_name")
@@ -153,7 +242,7 @@ def requirement_extractor_node(state: ApplicationWorkflowState) -> Dict[str, Any
         "Return a concise list of 4-6 bullet requirements and technical skills:\n\n"
         f"{job_text[:2500]}"
     )
-    llm_resp = _call_gemini_simple(prompt, api_keys)
+    llm_resp = _call_llm(prompt, api_keys=api_keys, nim_keys=nim_keys, preferred_provider=preferred_provider)
     reqs = extracted["requirements"]
     skills = extracted["skills"]
 
@@ -256,6 +345,8 @@ def human_copy_writer_node(state: ApplicationWorkflowState) -> Dict[str, Any]:
     critique = state.get("critique_feedback", "")
     iteration = state.get("iteration", 0) + 1
     api_keys = state.get("api_keys", [])
+    nim_keys = state.get("nim_keys", [])
+    preferred_provider = state.get("preferred_provider", "auto")
 
     # Format verified evidence for prompt
     evidence_lines = []
@@ -279,7 +370,7 @@ CRUCIAL RULES FOR STYLE:
 Draft the cover letter in 3 short, easy-to-read paragraphs.
 """
 
-    draft = _call_gemini_simple(prompt, api_keys)
+    draft = _call_llm(prompt, api_keys=api_keys, nim_keys=nim_keys, preferred_provider=preferred_provider)
 
     if not draft:
         # High-quality human fallback template with evidence injection
@@ -410,6 +501,8 @@ def run_application_agent_graph(
     role_title: Optional[str] = None,
     max_iterations: int = 2,
     api_keys: Optional[List[str]] = None,
+    nim_keys: Optional[List[str]] = None,
+    preferred_provider: str = "auto",
 ) -> Dict[str, Any]:
     """
     Executes the multi-agent LangGraph pipeline for a candidate and target job posting.
@@ -425,6 +518,8 @@ def run_application_agent_graph(
         "role_title": role_title or "",
         "max_iterations": max_iterations,
         "api_keys": api_keys or [],
+        "nim_keys": nim_keys or [],
+        "preferred_provider": preferred_provider or "auto",
         "iteration": 0,
         "is_approved": False,
         "agent_logs": [],

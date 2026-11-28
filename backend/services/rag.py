@@ -14,6 +14,11 @@ from sqlalchemy.orm import Session
 
 from database import ResumeChunk
 
+try:
+    import config
+except ImportError:
+    config = None
+
 # Optional Google GenAI SDK for remote embeddings
 try:
     from google import genai as _genai
@@ -71,6 +76,11 @@ def compute_embedding(text: str, api_keys: Optional[List[str]] = None) -> List[f
         return [0.0] * _DEFAULT_VECTOR_DIM
 
     valid_keys = [k for k in (api_keys or []) if k.strip()]
+    if config and getattr(config, "CURATION_API_KEY", ""):
+        cur_key = config.CURATION_API_KEY
+        if cur_key and cur_key not in valid_keys:
+            valid_keys.insert(0, cur_key)
+
     if _GENAI_AVAILABLE and valid_keys:
         for key in valid_keys:
             try:

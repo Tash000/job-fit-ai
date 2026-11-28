@@ -133,6 +133,7 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
   const [jobText, setJobText] = useState('')
   const [companyInput, setCompanyInput] = useState('')
   const [roleInput, setRoleInput] = useState('')
+  const [selectedProvider, setSelectedProvider] = useState<'auto' | 'gemini' | 'nim'>('auto')
   const [agentRunning, setAgentRunning] = useState(false)
   const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null)
   const [pipelineError, setPipelineError] = useState<string | null>(null)
@@ -225,6 +226,7 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
           company_name: companyInput.trim() || undefined,
           role_title: roleInput.trim() || undefined,
           max_iterations: 2,
+          provider: selectedProvider === 'auto' ? undefined : selectedProvider,
         }),
       })
       if (!res.ok) {
@@ -684,6 +686,42 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
                   resize: 'vertical',
                 }}
               />
+            </div>
+
+            {/* AI Engine & Provider Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18, padding: '10px 14px', background: 'var(--color-muted)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 650, letterSpacing: '0.04em' }}>
+                  AI ENGINE:
+                </span>
+                {(['auto', 'gemini', 'nim'] as const).map((prov) => (
+                  <button
+                    key={prov}
+                    type="button"
+                    onClick={() => setSelectedProvider(prov)}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.78rem',
+                      fontWeight: selectedProvider === prov ? 700 : 500,
+                      border: selectedProvider === prov ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
+                      background: selectedProvider === prov ? 'var(--color-primary)' : 'transparent',
+                      color: selectedProvider === prov ? '#ffffff' : 'var(--color-foreground)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {prov === 'auto' ? '⚡ Auto-Detect' : prov === 'gemini' ? 'Google Gemini' : 'NVIDIA NIM (Llama 3.3)'}
+                  </button>
+                ))}
+              </div>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                {selectedProvider === 'nim'
+                  ? 'LangGraph agents run on NVIDIA NIM (meta/llama-3.3-70b)'
+                  : selectedProvider === 'gemini'
+                    ? 'LangGraph agents run on Google Gemini (gemini-2.5-flash)'
+                    : 'Auto-selects active provider & dedicated workload keys'}
+              </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>

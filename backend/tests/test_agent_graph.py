@@ -151,3 +151,37 @@ def test_run_application_agent_graph_end_to_end():
 
     finally:
         db.close()
+
+
+def test_dual_provider_agent_graph_parameters():
+    from services.agent_graph import _call_llm
+
+    # Test fallback when keys are provided but no network/SDK available
+    res = _call_llm(
+        "test prompt",
+        api_keys=["dummy-gemini-key"],
+        nim_keys=["nvapi-dummy-nim-key"],
+        preferred_provider="nim",
+    )
+    # Returns None or string without crashing
+    assert res is None or isinstance(res, str)
+
+    db = main.db.SessionLocal()
+    try:
+        user_id = "user-dual-key-test"
+        result = run_application_agent_graph(
+            db=db,
+            user_id=user_id,
+            job_text="Software Engineer at Acme\n• Python, FastAPI",
+            company_name="Acme",
+            role_title="Software Engineer",
+            max_iterations=1,
+            api_keys=["gemini-workload-key"],
+            nim_keys=["nvapi-agent-workload-key"],
+            preferred_provider="nim",
+        )
+        assert result["role_title"] == "Software Engineer"
+        assert result["company_name"] == "Acme"
+        assert result["cover_letter"]
+    finally:
+        db.close()
