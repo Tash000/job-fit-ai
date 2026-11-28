@@ -51,8 +51,18 @@ GENERATION_RATE_LIMIT = os.getenv("GENERATION_RATE_LIMIT", "10/minute")
 AUTH_RATE_LIMIT = os.getenv("AUTH_RATE_LIMIT", "30/minute")
 
 # ── Server-level default provider keys (optional, used only if a user has none) ──
-GEMINI_SERVER_KEYS = _split_list(os.getenv("GEMINI_SERVER_KEYS", ""))
-NIM_SERVER_KEYS = _split_list(os.getenv("NIM_SERVER_KEYS", ""))
+GEMINI_SERVER_KEYS = _split_list(
+    os.getenv("GEMINI_SERVER_KEYS", "") or os.getenv("GEMINI_API_KEY", "")
+)
+NIM_SERVER_KEYS = _split_list(
+    os.getenv("NIM_SERVER_KEYS", "")
+    or os.getenv("NVIDIA_API_KEY", "")
+    or os.getenv("NIM_API_KEY", "")
+)
+
+# ── Dedicated Workload Keys (optional: isolate Curation/RAG vs LangGraph Agents) ──
+CURATION_API_KEY = os.getenv("CURATION_API_KEY", "").strip()
+AGENT_API_KEY = os.getenv("AGENT_API_KEY", "").strip()
 
 # ── Admin emails (server-level; users can also whitelist their own in Settings) ──
 # Emails listed here (and in a user's own settings.admin_emails) bypass rate

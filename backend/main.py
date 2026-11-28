@@ -147,6 +147,7 @@ class PipelineGraphRequest(BaseModel):
     company_name: Optional[str] = None
     role_title: Optional[str] = None
     max_iterations: Optional[int] = 2
+    provider: Optional[str] = None  # "gemini", "nim", or "auto"
 
 
 class BoardSearchRequest(BaseModel):
@@ -362,6 +363,11 @@ def _encrypt_key_list(plain_keys: List[str]) -> str:
 def _get_user_gemini_keys(db_session: Session, user_id: str) -> List[str]:
     row = _get_or_create_settings(db_session, user_id)
     return _decrypt_key_list(row.gemini_keys_enc) or list(config.GEMINI_SERVER_KEYS)
+
+
+def _get_user_nim_keys(db_session: Session, user_id: str) -> List[str]:
+    row = _get_or_create_settings(db_session, user_id)
+    return _decrypt_key_list(row.nim_keys_enc) or list(config.NIM_SERVER_KEYS)
 
 
 def _apply_key_edits(db_session: Session, row: db.UserSettings, payload: SettingsUpdate) -> None:
@@ -998,7 +1004,8 @@ def execute_pipeline_agent_graph(
 
     profile_row = _get_or_create_profile(db_session, user_id)
     chunk_count = db_session.query(db.ResumeChunk).filter(db.ResumeChunk.user_id == user_id).count()
-    keys = _get_user_gemini_keys(db_session, user_id)
+    gemini_keys = _get_user_gemini_keys(db_session, user_id)
+    nim_keys = _get_user_nim_keys(db_session, user_id)
 
     if chunk_count == 0 and (profile_row.resume_text or "").strip():
         index_user_resume(
@@ -1006,8 +1013,10 @@ def execute_pipeline_agent_graph(
             user_id=user_id,
             resume_text=profile_row.resume_text,
             parsed_profile=profile_row.parsed_profile,
-            api_keys=keys,
+            api_keys=gemini_keys,
         )
+
+    preferred_provider = (payload.provider or "auto").lower()
 
     result = run_application_agent_graph(
         db=db_session,
@@ -1016,7 +1025,9 @@ def execute_pipeline_agent_graph(
         company_name=payload.company_name,
         role_title=payload.role_title,
         max_iterations=payload.max_iterations or 2,
-        api_keys=keys,
+        api_keys=gemini_keys,
+        nim_keys=nim_keys,
+        preferred_provider=preferred_provider,
     )
 
     _log_activity(db_session, user_id, "pipeline.run_graph", f"{result.get('role_title', 'Role')} at {result.get('company_name', 'Company')}")
