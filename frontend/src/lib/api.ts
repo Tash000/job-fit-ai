@@ -19,10 +19,25 @@ export function installFetchInterceptor() {
 
   window.fetch = async (input, init) => {
     const rawUrl = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
-    const isApiCall = rawUrl.startsWith('/api') || (API_BASE && rawUrl.startsWith(API_BASE))
+    const isRelativeApi = rawUrl.startsWith('/api')
+    const isApiCall = isRelativeApi || (API_BASE && rawUrl.startsWith(API_BASE))
 
     if (!isApiCall) {
       return originalFetch(input, init)
+    }
+
+    // When running with cross-origin backend (e.g. Vercel frontend -> Render backend),
+    // automatically rewrite relative /api calls to the backend origin.
+    let targetInput: RequestInfo | URL = input
+    if (isRelativeApi && API_BASE) {
+      const rewritten = `${API_BASE}${rawUrl}`
+      if (typeof input === 'string') {
+        targetInput = rewritten
+      } else if (input instanceof Request) {
+        targetInput = new Request(rewritten, input)
+      } else {
+        targetInput = rewritten
+      }
     }
 
     const token = getAuthToken()
@@ -33,7 +48,7 @@ export function installFetchInterceptor() {
       init = { ...init, headers }
     }
 
-    const response = await originalFetch(input, init)
+    const response = await originalFetch(targetInput, init)
     if (response.status === 401 && token) {
       window.dispatchEvent(new CustomEvent('vitralume:auth-expired'))
     }

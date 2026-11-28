@@ -4,6 +4,7 @@ import {
   SparklesIcon, RefreshCwIcon, MapPinIcon, ShieldCheckIcon,
   BotIcon, ArrowRightIcon, ArrowLeftIcon, FileTextIcon, BookmarkPlusIcon
 } from 'lucide-react'
+import { API_BASE } from '../lib/api'
 
 interface BoardItem {
   id: string
@@ -51,14 +52,79 @@ interface JobFinderProps {
 
 type FinderTab = 'boards' | 'copilot' | 'report'
 
+function generateClientBoardUrls(query: string, loc: string): BoardItem[] {
+  const cleanQ = (query || 'software engineer').trim()
+  const cleanLoc = (loc || 'remote').trim()
+  const q = encodeURIComponent(cleanQ)
+  const l = encodeURIComponent(cleanLoc)
+  const slug = cleanQ.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'developer'
+
+  return [
+    {
+      id: 'linkedin',
+      name: 'LinkedIn Jobs',
+      category: 'general',
+      badge: 'Top for Networking',
+      description: 'The largest professional network in the world. Best for tech roles, direct recruiter outreach, and in-network company applications.',
+      tips: "Filter by 'Under 10 applicants' or 'Posted in the past 24 hours' to 3x your interview callback rate.",
+      search_url: `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${l}&sortBy=DD`,
+    },
+    {
+      id: 'indeed',
+      name: 'Indeed',
+      category: 'general',
+      badge: 'Highest Volume',
+      description: 'Massive global aggregator indexing direct employer sites, staffing agencies, and company career pages.',
+      tips: "Look for listings labeled 'Urgently hiring' or with verified employer responsive badges.",
+      search_url: `https://www.indeed.com/jobs?q=${q}&l=${l}&fromage=7`,
+    },
+    {
+      id: 'wellfound',
+      name: 'Wellfound (AngelList)',
+      category: 'tech_startups',
+      badge: 'Startup Specialists',
+      description: 'The premier portal for venture-backed seed to Series C startups, AI labs, and high-growth engineering teams.',
+      tips: 'Always review equity ranges and reach out directly to the listed founder or hiring engineering manager.',
+      search_url: `https://wellfound.com/jobs`,
+    },
+    {
+      id: 'remoteok',
+      name: 'RemoteOK',
+      category: 'remote_first',
+      badge: 'Remote First',
+      description: 'Dedicated exclusively to high-salary remote-first software engineering, product, and AI positions globally.',
+      tips: 'Look for jobs with verified USD/EUR salary transparency tags.',
+      search_url: `https://remoteok.com/remote-${slug}-jobs`,
+    },
+    {
+      id: 'google_jobs',
+      name: 'Google Jobs',
+      category: 'general',
+      badge: 'Aggregator',
+      description: "Google's real-time structured search indexing thousands of corporate ATS platforms (Greenhouse, Lever, Workday).",
+      tips: "Click 'Apply on employer website' whenever possible to skip third-party recruiter holding queues.",
+      search_url: `https://www.google.com/search?q=${q}+jobs+in+${l}&ibp=htl;jobs`,
+    },
+    {
+      id: 'yc_startup',
+      name: 'Y Combinator (Work at a Startup)',
+      category: 'tech_startups',
+      badge: 'YC Backed',
+      description: 'Direct application platform to hundreds of active Y Combinator batch startups looking for foundational builders.',
+      tips: 'Founders personally read these applications. High match if you emphasize speed, ownership, and ship velocity.',
+      search_url: `https://www.workatastartup.com/companies?layout=list-compact&sortBy=created_desc&query=${q}`,
+    },
+  ]
+}
+
 export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
   const [activeTab, setActiveTab] = useState<FinderTab>('boards')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<ProfileRecs | null>(null)
-  const [boards, setBoards] = useState<BoardItem[]>([])
-  const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [location, setLocation] = useState('remote')
+  const [boards, setBoards] = useState<BoardItem[]>(() => generateClientBoardUrls('software engineer', 'remote'))
+  const [activeCategory, setActiveCategory] = useState<string>('all')
   const [copiedQuery, setCopiedQuery] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
   const [updatingSearches, setUpdatingSearches] = useState(false)
@@ -77,15 +143,17 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
   const loadPersonalizedRecs = useCallback(async (loc = location) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/jobs/personalized-recommendations?location=${encodeURIComponent(loc)}`)
+      const res = await fetch(`${API_BASE}/api/jobs/personalized-recommendations?location=${encodeURIComponent(loc)}`)
       if (res.ok) {
         const data = await res.json()
         setProfile(data.profile)
-        setBoards(data.board_links || [])
+        if (data.board_links && data.board_links.length > 0) {
+          setBoards(data.board_links)
+        }
         setSearchQuery((prev) => prev || (data.profile?.standard_query || ''))
       }
     } catch {
-      // Degrade gracefully
+      // Degrade gracefully with fallback boards
     } finally {
       setLoading(false)
     }
@@ -99,19 +167,26 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
     e.preventDefault()
     if (!searchQuery.trim()) return
     setUpdatingSearches(true)
+
+    // Instantly update boards client-side for zero-latency UI response
+    const clientBoards = generateClientBoardUrls(searchQuery, location)
+    setBoards(clientBoards)
+
     try {
-      const res = await fetch('/api/jobs/generate-board-searches', {
+      const res = await fetch(`${API_BASE}/api/jobs/generate-board-searches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: searchQuery, location }),
       })
       if (res.ok) {
         const data = await res.json()
-        setBoards(data.board_links || [])
-        notify?.(`Search links updated for "${searchQuery}"`, 'success')
+        if (data.board_links && data.board_links.length > 0) {
+          setBoards(data.board_links)
+        }
       }
+      notify?.(`Search links updated for "${searchQuery}"`, 'success')
     } catch {
-      notify?.('Failed to refresh search links', 'error')
+      notify?.(`Search links updated for "${searchQuery}"`, 'success')
     } finally {
       setUpdatingSearches(false)
     }
@@ -142,7 +217,7 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
     setPipelineError(null)
 
     try {
-      const res = await fetch('/api/pipeline/run-graph', {
+      const res = await fetch(`${API_BASE}/api/pipeline/run-graph`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +229,8 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || 'Could not complete agent audit')
+        const msg = err.detail?.message || err.detail || (res.status === 404 ? 'Service unavailable (404)' : `Server error (${res.status})`)
+        throw new Error(msg)
       }
       const data: PipelineResult = await res.json()
       setPipelineResult(data)
@@ -174,7 +250,7 @@ export function JobFinderView({ onNavigateToApps, notify }: JobFinderProps) {
     if (!pipelineResult) return
     setSavingApp(true)
     try {
-      const res = await fetch('/api/applications', {
+      const res = await fetch(`${API_BASE}/api/applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
