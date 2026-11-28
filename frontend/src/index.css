@@ -232,33 +232,34 @@
 }
 
 /* ── 2b. SEMANTIC TOKENS — dark (ink) ────────────────────────────────── */
-/* Modern deep charcoal / neutral slate canvas, clean card surfaces, crisp rules. */
+/* Linear / Raycast architectural standard: deep velvety obsidian void,
+   subtle surface ladder, hairline frosted borders, high-contrast typography. */
 [data-theme="dark"] {
-  --color-background: #0E1116;
-  --color-foreground: #F0F3F6;
-  --color-card: #161B22;
-  --color-card-foreground: #F0F3F6;
-  --color-muted: #1F242C;
-  --color-muted-foreground: #94A3B8;
-  --color-secondary: #181D25;
-  --color-secondary-foreground: #F0F3F6;
-  --color-border: #282E39;
-  --color-input: #12151B;
+  --color-background: #08090A;
+  --color-foreground: #F8FAFC;
+  --color-card: #0F1115;
+  --color-card-foreground: #F8FAFC;
+  --color-muted: #15181E;
+  --color-muted-foreground: #8B949E;
+  --color-secondary: #121418;
+  --color-secondary-foreground: #F8FAFC;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: #0A0B0E;
 
-  --color-ring: var(--brand-400);
+  --color-ring: rgba(255, 255, 255, 0.2);
 
-  --color-primary: var(--brand-500);
-  --color-primary-hover: var(--brand-400);
-  --color-primary-active: var(--brand-300);
+  --color-primary: #1D8A52;
+  --color-primary-hover: #239C5E;
+  --color-primary-active: #177343;
   --color-primary-foreground: #FFFFFF;
 
-  --color-success: var(--color-green-500);
-  --color-warning: var(--color-yellow-500);
-  --color-error: var(--color-red-500);
-  --color-info: var(--brand-400);
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #38BDF8;
 
-  --color-sidebar: #111419;
-  --color-sidebar-border: #282E39;
+  --color-sidebar: #08090A;
+  --color-sidebar-border: rgba(255, 255, 255, 0.07);
 
   color-scheme: dark;
 }
@@ -360,23 +361,23 @@
 }
 
 [data-theme="dark"] {
-  --accent-bg:     color-mix(in srgb, var(--brand-500) 18%, transparent);
-  --accent-bg-hover: color-mix(in srgb, var(--brand-500) 26%, transparent);
-  --accent-border: color-mix(in srgb, var(--brand-400) 44%, transparent);
+  --accent-bg:     rgba(255, 255, 255, 0.04);
+  --accent-bg-hover: rgba(255, 255, 255, 0.08);
+  --accent-border: rgba(255, 255, 255, 0.10);
   --teal:          var(--color-teal-500);
   --info:          var(--brand-400);
-  --bg-input:      color-mix(in srgb, #FFFFFF 6%, transparent);
-  --bg-hover:      rgb(255 255 255 / 0.07);
-  --bg-hover-strong: rgb(255 255 255 / 0.12);
-  --topbar-bg:     color-mix(in srgb, var(--color-card) 90%, transparent);
-  --ink-shadow:    #0D0B09;
+  --bg-input:      rgba(255, 255, 255, 0.04);
+  --bg-hover:      rgba(255, 255, 255, 0.06);
+  --bg-hover-strong: rgba(255, 255, 255, 0.10);
+  --topbar-bg:     rgba(8, 9, 10, 0.88);
+  --ink-shadow:    #000000;
   --logo-gradient: linear-gradient(135deg, var(--brand-400), var(--brand-500));
-  --shadow-xl: 6px 6px 0 var(--ink-shadow);
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
-  --shadow-md: 0 3px 8px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 12px 30px rgb(0 0 0 / 0.5);
-  --text-secondary: var(--color-gray-400);
-  --border-strong: var(--color-gray-500);
+  --shadow-xl: 0 16px 36px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
+  --text-secondary: #8B949E;
+  --border-strong: rgba(255, 255, 255, 0.15);
 }
 
 /* ── 2c. OPTIONAL STYLE THEMES (opt-in via Settings) ──────────────────────
@@ -458,76 +459,78 @@
   --ink-shadow: #281B15;
 }
 
-/* Alpine (Sanzo Wada #217) · Dark — cool obsidian slate canvas with crisp contrast,
-   refined slate-elevated cards, luminous alpine emerald primary actions,
-   and warm starlight gold accent highlights. Zero muddy red tint. */
+/* Alpine (Sanzo Wada #217) · Dark — Linear/Raycast architectural benchmark:
+   deep velvety obsidian void (#08090A), lifted cards (#0F1115),
+   subtle hairline frosted borders (rgba(255,255,255,0.08)), restrained Diamine
+   forest emerald (#1D8A52), and starlight sand gold (#D8A37B) highlights.
+   Zero washed-out light gray and zero radioactive neon green. */
 [data-style="teabook"][data-theme="dark"] {
-  --color-background: #0B0F13;
-  --color-foreground: #F1F5F9;
-  --color-card: #12171E;
-  --color-card-foreground: #F1F5F9;
-  --color-muted: #19202A;
-  --color-muted-foreground: #94A3B8;
-  --color-secondary: #151D25;
-  --color-secondary-foreground: #F1F5F9;
-  --color-border: #24303E;
-  --color-input: #0E1318;
+  --color-background: #08090A;
+  --color-foreground: #F8FAFC;
+  --color-card: #0F1115;
+  --color-card-foreground: #F8FAFC;
+  --color-muted: #15181E;
+  --color-muted-foreground: #8B949E;
+  --color-secondary: #121418;
+  --color-secondary-foreground: #F8FAFC;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: #0A0B0E;
 
-  /* Main Hero Brand in Dark Mode: Luminous Alpine Emerald */
+  /* Restrained Forest Diamine Green in Dark Mode (No neon) */
   --brand-50:   var(--wada-diamine-50);
   --brand-100:  var(--wada-diamine-100);
   --brand-200:  var(--wada-diamine-200);
   --brand-300:  var(--wada-diamine-300);
-  --brand-400:  #34D399;
-  --brand-500:  #22C55E;
-  --brand-600:  #16A34A;
-  --brand-700:  #15803D;
-  --brand-800:  #166534;
-  --brand-grad-to: #34D399;
+  --brand-400:  #2AA364;
+  --brand-500:  #1D8A52;
+  --brand-600:  #187948;
+  --brand-700:  #14653C;
+  --brand-800:  #105230;
+  --brand-grad-to: #2AA364;
 
-  --color-ring: #22C55E;
-  --color-primary: #22C55E;
-  --color-primary-hover: #34D399;
-  --color-primary-active: #16A34A;
-  --color-primary-foreground: #05200E;
+  --color-ring: rgba(29, 138, 82, 0.4);
+  --color-primary: #1D8A52;
+  --color-primary-hover: #239C5E;
+  --color-primary-active: #177343;
+  --color-primary-foreground: #FFFFFF;
 
-  --color-success: #22C55E;
-  --color-warning: #E0B389;
-  --color-error: #F87171;
+  --color-success: #10B981;
+  --color-warning: #D8A37B;
+  --color-error: #EF4444;
   --color-info: #38BDF8;
 
-  --color-sidebar: #0D1117;
-  --color-sidebar-border: #24303E;
-  --text-secondary: #E0B389;
-  --border-strong: #38495A;
+  --color-sidebar: #08090A;
+  --color-sidebar-border: rgba(255, 255, 255, 0.07);
+  --text-secondary: #D8A37B;
+  --border-strong: rgba(255, 255, 255, 0.16);
 
-  --teal: #22C55E;
-  --teal-bg: color-mix(in srgb, #22C55E 14%, transparent);
-  --teal-border: color-mix(in srgb, #22C55E 36%, transparent);
+  --teal: #1D8A52;
+  --teal-bg: rgba(29, 138, 82, 0.12);
+  --teal-border: rgba(29, 138, 82, 0.28);
 
-  --success: #22C55E;
-  --success-bg: color-mix(in srgb, #22C55E 16%, transparent);
-  --success-border: color-mix(in srgb, #22C55E 38%, transparent);
+  --success: #10B981;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(16, 185, 129, 0.28);
 
-  --warning: #E0B389;
-  --warning-bg: color-mix(in srgb, #E0B389 16%, transparent);
-  --warning-border: color-mix(in srgb, #E0B389 38%, transparent);
+  --warning: #D8A37B;
+  --warning-bg: rgba(216, 163, 123, 0.12);
+  --warning-border: rgba(216, 163, 123, 0.28);
 
-  --danger: #F87171;
-  --danger-bg: color-mix(in srgb, #F87171 16%, transparent);
-  --danger-border: color-mix(in srgb, #F87171 38%, transparent);
+  --danger: #EF4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.28);
 
   --info: #38BDF8;
-  --info-bg: color-mix(in srgb, #38BDF8 14%, transparent);
-  --info-border: color-mix(in srgb, #38BDF8 36%, transparent);
+  --info-bg: rgba(56, 189, 248, 0.12);
+  --info-border: rgba(56, 189, 248, 0.28);
 
   --violet: #A78BFA;
-  --violet-bg: color-mix(in srgb, #A78BFA 14%, transparent);
-  --violet-border: color-mix(in srgb, #A78BFA 36%, transparent);
+  --violet-bg: rgba(167, 139, 250, 0.12);
+  --violet-border: rgba(167, 139, 250, 0.28);
 
-  --topbar-bg: color-mix(in srgb, #0B0F13 92%, transparent);
-  --logo-gradient: linear-gradient(135deg, #22C55E, #38BDF8);
-  --ink-shadow: #05080A;
+  --topbar-bg: rgba(8, 9, 10, 0.88);
+  --logo-gradient: linear-gradient(135deg, #1D8A52, #D8A37B);
+  --ink-shadow: #000000;
 }
 
 /* Beige · Light — warm paper, teal accent */
@@ -1110,6 +1113,65 @@ code { font-family: var(--font-mono); }
   background: var(--color-muted);
 }
 
+/* Linear / Raycast standard: High-contrast, executive primary actions in dark mode */
+[data-theme="dark"] .btn-primary {
+  background: #F8FAFC;
+  color: #08090A;
+  font-weight: 650;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: #FFFFFF;
+  color: #000000;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1.5px) scale(1.02);
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #F1F5F9;
+}
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+/* Theme selector toggle buttons */
+.theme-choice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-foreground);
+}
+.theme-choice-btn:hover {
+  background: var(--color-muted);
+  border-color: var(--color-border);
+}
+.theme-choice-btn.active {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-color: var(--color-primary);
+  font-weight: 650;
+}
+[data-theme="dark"] .theme-choice-btn.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
 .btn-ghost {
   background: transparent;
   border-color: var(--color-border);
@@ -1184,6 +1246,10 @@ code { font-family: var(--font-mono); }
 .card-accent {
   border-color: var(--accent-border);
   background: linear-gradient(135deg, var(--accent-bg) 0%, var(--color-card) 55%);
+}
+[data-theme="dark"] .card-accent {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, var(--color-card) 100%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2423,6 +2489,11 @@ code { font-family: var(--font-mono); }
   background: var(--accent-bg);
   box-shadow: inset 0 2px 0 var(--accent);
 }
+[data-theme="dark"] .mobile-nav-btn.active {
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 0 #1D8A52;
+}
 
 /* Mobile-only sign-out button in the topbar (sidebar is hidden on phones). */
 .topbar-signout-mobile { display: none; }
@@ -2451,6 +2522,11 @@ code { font-family: var(--font-mono); }
   background: var(--accent-bg);
   color: var(--accent);
   font-weight: var(--font-weight-semibold);
+}
+[data-theme="dark"] .accent-swatch.active {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
 }
 .swatch {
   width: 16px; height: 16px;
@@ -2846,6 +2922,11 @@ code { font-family: var(--font-mono); }
 }
 .model-default-btn:hover { border-color: var(--accent-border); color: var(--accent); }
 .model-default-btn.is-default { border-color: var(--success-border); color: var(--success); background: var(--success-bg); }
+[data-theme="dark"] .model-default-btn.is-default {
+  border-color: rgba(29, 138, 82, 0.35);
+  color: #34D399;
+  background: rgba(29, 138, 82, 0.12);
+}
 
 .admin-managed-hint {
   display: flex;
@@ -2859,6 +2940,11 @@ code { font-family: var(--font-mono); }
   border: 1px solid var(--accent-border);
   margin-bottom: 8px;
   line-height: 1.45;
+}
+[data-theme="dark"] .admin-managed-hint {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #94A3B8;
 }
 
 .active-model-pill {
