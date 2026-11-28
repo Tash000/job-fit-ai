@@ -305,7 +305,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
-            <InstallButton />
+            <InstallButton compact />
             <button
               className="btn btn-ghost btn-icon btn-sm theme-toggle"
               onClick={toggleTheme}

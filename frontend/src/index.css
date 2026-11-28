@@ -977,7 +977,47 @@ code { font-family: var(--font-mono); }
   letter-spacing: 0.04em;
 }
 
-.topbar-actions { display: flex; align-items: center; gap: var(--space-2-5); }
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2-5);
+  flex-shrink: 0;
+}
+
+/* Compact install button in topbar */
+.install-btn-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.install-btn-compact .install-text-mobile { display: none; }
+.install-btn-compact .install-text-desktop { display: inline; }
+
+@media (max-width: 680px) {
+  .install-btn-compact {
+    padding: 6px 9px;
+  }
+  .install-btn-compact .install-text-desktop { display: none; }
+  .install-btn-compact .install-text-mobile { display: inline; }
+}
+
+@media (max-width: 480px) {
+  .install-btn-compact {
+    padding: 6px 8px;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+  }
+  .install-btn-compact .install-text-mobile { display: none; }
+  .install-btn-compact .install-text-desktop { display: none; }
+}
 
 .main-content {
   flex: 1;
@@ -985,6 +1025,7 @@ code { font-family: var(--font-mono); }
   max-width: 1380px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-8);
+  box-sizing: border-box;
 }
 
 /* ── Provider badge ── */
@@ -2751,12 +2792,30 @@ code { font-family: var(--font-mono); }
 /* Tablet / phone: sidebar becomes a bottom tab bar. */
 @media (max-width: 900px) {
   .sidebar { display: none; }
-  .topbar-logo { display: inline-flex; }
-  .app-main { margin-left: 0; width: 100%; }
+  .topbar {
+    height: 52px;
+    padding: 0 12px;
+    gap: 8px;
+    overflow: hidden;
+    max-width: 100vw;
+  }
+  .topbar-logo { display: inline-flex; flex-shrink: 0; }
+  .topbar-actions { flex-shrink: 0; gap: 6px; }
+  .topbar-title { min-width: 0; flex: 1; overflow: hidden; }
+  .topbar-title-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    font-size: 0.95rem;
+  }
+  .app-main { margin-left: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
   .main-content {
     padding: var(--space-4);
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
     max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
   .mobile-nav { display: flex; }
   .topbar-signout-mobile { display: inline-flex; }
@@ -2858,7 +2917,48 @@ code { font-family: var(--font-mono); }
 @media (max-width: 560px) {
   html { font-size: 14px; }
   .feature-grid { grid-template-columns: 1fr; }
-  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+  }
+  /* Odd-count last tile (e.g. 5th tile: Resumes) spans across both columns in a clean horizontal strip */
+  .stat-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .stat-grid > :last-child:nth-child(odd).stat-card,
+  .stat-grid > :last-child:nth-child(odd) .stat-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 12px 16px;
+  }
+  .stat-grid > :last-child:nth-child(odd) .stat-icon {
+    margin-bottom: 0;
+  }
+  .stat-card {
+    padding: 14px 14px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: var(--radius-lg);
+  }
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 1.55rem;
+  }
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .topbar-actions .btn-secondary { display: none; }
   .hero-badge { font-size: 0.66rem; padding: 4px 10px; }
   .auth-card { padding: 28px 20px; }
