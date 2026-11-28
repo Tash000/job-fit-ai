@@ -232,34 +232,36 @@
 }
 
 /* ── 2b. SEMANTIC TOKENS — dark (ink) ────────────────────────────────── */
-/* Linear / Raycast architectural standard: deep velvety obsidian void,
-   subtle surface ladder, hairline frosted borders, high-contrast typography. */
+/* Professional developer-grade dark theme (GitHub Dark & Vercel Slate benchmark):
+   comfort-first charcoal slate canvas (#0D1117), elevated card surfaces (#161B22),
+   crisp structural borders (#30363D), soft off-white typography (#F0F6FC),
+   and neutral secondary text (#8D96A0). Zero blinding pitch black, zero eye-glare white buttons. */
 [data-theme="dark"] {
-  --color-background: #08090A;
-  --color-foreground: #F8FAFC;
-  --color-card: #0F1115;
-  --color-card-foreground: #F8FAFC;
-  --color-muted: #15181E;
-  --color-muted-foreground: #8B949E;
-  --color-secondary: #121418;
-  --color-secondary-foreground: #F8FAFC;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input: #0A0B0E;
+  --color-background: #0D1117;
+  --color-foreground: #F0F6FC;
+  --color-card: #161B22;
+  --color-card-foreground: #F0F6FC;
+  --color-muted: #21262D;
+  --color-muted-foreground: #8D96A0;
+  --color-secondary: #1F242C;
+  --color-secondary-foreground: #F0F6FC;
+  --color-border: #30363D;
+  --color-input: #0D1117;
 
-  --color-ring: rgba(255, 255, 255, 0.2);
+  --color-ring: rgba(56, 139, 253, 0.4);
 
-  --color-primary: #1D8A52;
-  --color-primary-hover: #239C5E;
-  --color-primary-active: #177343;
+  --color-primary: #238636;
+  --color-primary-hover: #2EA043;
+  --color-primary-active: #1F7A31;
   --color-primary-foreground: #FFFFFF;
 
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #38BDF8;
+  --color-success: #238636;
+  --color-warning: #D29922;
+  --color-error: #F85149;
+  --color-info: #58A6FF;
 
-  --color-sidebar: #08090A;
-  --color-sidebar-border: rgba(255, 255, 255, 0.07);
+  --color-sidebar: #0D1117;
+  --color-sidebar-border: #30363D;
 
   color-scheme: dark;
 }
@@ -361,23 +363,23 @@
 }
 
 [data-theme="dark"] {
-  --accent-bg:     rgba(255, 255, 255, 0.04);
-  --accent-bg-hover: rgba(255, 255, 255, 0.08);
-  --accent-border: rgba(255, 255, 255, 0.10);
-  --teal:          var(--color-teal-500);
-  --info:          var(--brand-400);
-  --bg-input:      rgba(255, 255, 255, 0.04);
-  --bg-hover:      rgba(255, 255, 255, 0.06);
-  --bg-hover-strong: rgba(255, 255, 255, 0.10);
-  --topbar-bg:     rgba(8, 9, 10, 0.88);
-  --ink-shadow:    #000000;
-  --logo-gradient: linear-gradient(135deg, var(--brand-400), var(--brand-500));
-  --shadow-xl: 0 16px 36px rgba(0, 0, 0, 0.6);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 3px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
-  --text-secondary: #8B949E;
-  --border-strong: rgba(255, 255, 255, 0.15);
+  --accent-bg:     rgba(56, 139, 253, 0.10);
+  --accent-bg-hover: rgba(56, 139, 253, 0.18);
+  --accent-border: rgba(56, 139, 253, 0.30);
+  --teal:          #238636;
+  --info:          #58A6FF;
+  --bg-input:      #0D1117;
+  --bg-hover:      rgba(240, 246, 252, 0.06);
+  --bg-hover-strong: rgba(240, 246, 252, 0.10);
+  --topbar-bg:     rgba(13, 17, 23, 0.88);
+  --ink-shadow:    #010409;
+  --logo-gradient: linear-gradient(135deg, #2EA043, #58A6FF);
+  --shadow-xl: 0 12px 28px rgba(1, 4, 9, 0.6);
+  --shadow-sm: 0 1px 2px rgba(1, 4, 9, 0.4);
+  --shadow-md: 0 3px 8px rgba(1, 4, 9, 0.5);
+  --shadow-lg: 0 8px 24px rgba(1, 4, 9, 0.6);
+  --text-secondary: #8D96A0;
+  --border-strong: #484F58;
 }
 
 /* ── 2c. OPTIONAL STYLE THEMES (opt-in via Settings) ──────────────────────
@@ -459,78 +461,77 @@
   --ink-shadow: #281B15;
 }
 
-/* Alpine (Sanzo Wada #217) · Dark — Linear/Raycast architectural benchmark:
-   deep velvety obsidian void (#08090A), lifted cards (#0F1115),
-   subtle hairline frosted borders (rgba(255,255,255,0.08)), restrained Diamine
-   forest emerald (#1D8A52), and starlight sand gold (#D8A37B) highlights.
-   Zero washed-out light gray and zero radioactive neon green. */
+/* Alpine (Sanzo Wada #217) · Dark — Professional Developer-Grade Slate & Forest Emerald:
+   Canvas #0D1117, Raised cards #161B22, Crisp structural borders #30363D,
+   Primary text #F0F6FC, Neutral secondary text #8D96A0 (no muddy red/orange body text),
+   and battle-tested forest emerald (#238636 / #2EA043) primary actions. */
 [data-style="teabook"][data-theme="dark"] {
-  --color-background: #08090A;
-  --color-foreground: #F8FAFC;
-  --color-card: #0F1115;
-  --color-card-foreground: #F8FAFC;
-  --color-muted: #15181E;
-  --color-muted-foreground: #8B949E;
-  --color-secondary: #121418;
-  --color-secondary-foreground: #F8FAFC;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-input: #0A0B0E;
+  --color-background: #0D1117;
+  --color-foreground: #F0F6FC;
+  --color-card: #161B22;
+  --color-card-foreground: #F0F6FC;
+  --color-muted: #21262D;
+  --color-muted-foreground: #8D96A0;
+  --color-secondary: #1F242C;
+  --color-secondary-foreground: #F0F6FC;
+  --color-border: #30363D;
+  --color-input: #0D1117;
 
-  /* Restrained Forest Diamine Green in Dark Mode (No neon) */
-  --brand-50:   var(--wada-diamine-50);
-  --brand-100:  var(--wada-diamine-100);
-  --brand-200:  var(--wada-diamine-200);
-  --brand-300:  var(--wada-diamine-300);
-  --brand-400:  #2AA364;
-  --brand-500:  #1D8A52;
-  --brand-600:  #187948;
-  --brand-700:  #14653C;
-  --brand-800:  #105230;
-  --brand-grad-to: #2AA364;
+  /* Refined Forest Emerald Brand Tokens in Dark Mode */
+  --brand-50:   #0D1F14;
+  --brand-100:  #133320;
+  --brand-200:  #184C2C;
+  --brand-300:  #1E673A;
+  --brand-400:  #2EA043;
+  --brand-500:  #238636;
+  --brand-600:  #1F7A31;
+  --brand-700:  #1A6529;
+  --brand-800:  #144F20;
+  --brand-grad-to: #2EA043;
 
-  --color-ring: rgba(29, 138, 82, 0.4);
-  --color-primary: #1D8A52;
-  --color-primary-hover: #239C5E;
-  --color-primary-active: #177343;
+  --color-ring: rgba(46, 160, 67, 0.4);
+  --color-primary: #238636;
+  --color-primary-hover: #2EA043;
+  --color-primary-active: #1F7A31;
   --color-primary-foreground: #FFFFFF;
 
-  --color-success: #10B981;
-  --color-warning: #D8A37B;
-  --color-error: #EF4444;
-  --color-info: #38BDF8;
+  --color-success: #238636;
+  --color-warning: #D29922;
+  --color-error: #F85149;
+  --color-info: #58A6FF;
 
-  --color-sidebar: #08090A;
-  --color-sidebar-border: rgba(255, 255, 255, 0.07);
-  --text-secondary: #D8A37B;
-  --border-strong: rgba(255, 255, 255, 0.16);
+  --color-sidebar: #0D1117;
+  --color-sidebar-border: #30363D;
+  --text-secondary: #8D96A0;
+  --border-strong: #484F58;
 
-  --teal: #1D8A52;
-  --teal-bg: rgba(29, 138, 82, 0.12);
-  --teal-border: rgba(29, 138, 82, 0.28);
+  --teal: #238636;
+  --teal-bg: rgba(35, 134, 54, 0.15);
+  --teal-border: rgba(35, 134, 54, 0.35);
 
-  --success: #10B981;
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --success-border: rgba(16, 185, 129, 0.28);
+  --success: #238636;
+  --success-bg: rgba(35, 134, 54, 0.15);
+  --success-border: rgba(35, 134, 54, 0.35);
 
-  --warning: #D8A37B;
-  --warning-bg: rgba(216, 163, 123, 0.12);
-  --warning-border: rgba(216, 163, 123, 0.28);
+  --warning: #D29922;
+  --warning-bg: rgba(210, 153, 34, 0.15);
+  --warning-border: rgba(210, 153, 34, 0.35);
 
-  --danger: #EF4444;
-  --danger-bg: rgba(239, 68, 68, 0.12);
-  --danger-border: rgba(239, 68, 68, 0.28);
+  --danger: #F85149;
+  --danger-bg: rgba(248, 81, 73, 0.15);
+  --danger-border: rgba(248, 81, 73, 0.35);
 
-  --info: #38BDF8;
-  --info-bg: rgba(56, 189, 248, 0.12);
-  --info-border: rgba(56, 189, 248, 0.28);
+  --info: #58A6FF;
+  --info-bg: rgba(88, 166, 255, 0.15);
+  --info-border: rgba(88, 166, 255, 0.35);
 
-  --violet: #A78BFA;
-  --violet-bg: rgba(167, 139, 250, 0.12);
-  --violet-border: rgba(167, 139, 250, 0.28);
+  --violet: #A371F7;
+  --violet-bg: rgba(163, 113, 247, 0.15);
+  --violet-border: rgba(163, 113, 247, 0.35);
 
-  --topbar-bg: rgba(8, 9, 10, 0.88);
-  --logo-gradient: linear-gradient(135deg, #1D8A52, #D8A37B);
-  --ink-shadow: #000000;
+  --topbar-bg: rgba(13, 17, 23, 0.88);
+  --logo-gradient: linear-gradient(135deg, #2EA043, #58A6FF);
+  --ink-shadow: #010409;
 }
 
 /* Beige · Light — warm paper, teal accent */
@@ -574,45 +575,45 @@
   --border-strong: #A9B2A4;
 }
 
-/* Beige · Dark — cool dark charcoal slate canvas, sage accent (no red tint) */
+/* Beige · Dark — clean slate canvas, sage accent, neutral text (no red/muddy tint) */
 [data-style="beige"][data-theme="dark"] {
-  --color-background: #101418;
-  --color-foreground: #F1F5F9;
-  --color-card: #171D23;
-  --color-card-foreground: #F1F5F9;
-  --color-muted: #20272F;
-  --color-muted-foreground: #94A3B8;
-  --color-secondary: #1B222A;
-  --color-secondary-foreground: #F1F5F9;
-  --color-border: #2C3642;
-  --color-input: #12161A;
+  --color-background: #0D1117;
+  --color-foreground: #F0F6FC;
+  --color-card: #161B22;
+  --color-card-foreground: #F0F6FC;
+  --color-muted: #21262D;
+  --color-muted-foreground: #8D96A0;
+  --color-secondary: #1F242C;
+  --color-secondary-foreground: #F0F6FC;
+  --color-border: #30363D;
+  --color-input: #0D1117;
 
-  --brand-50:   #F6F7F3;
-  --brand-100:  #EBEEE5;
-  --brand-200:  #DAE0D0;
-  --brand-300:  #CAD2BB;
-  --brand-400:  #B9C4A6;
-  --brand-500:  #ACB996;
-  --brand-600:  #A3B18A;
-  --brand-700:  #7F8A6C;
-  --brand-800:  #5F6750;
-  --brand-grad-to: #B5C29C;
+  --brand-50:   #12241D;
+  --brand-100:  #1B382D;
+  --brand-200:  #254D3E;
+  --brand-300:  #346854;
+  --brand-400:  #47856C;
+  --brand-500:  #5BA385;
+  --brand-600:  #4A8C70;
+  --brand-700:  #3A735B;
+  --brand-800:  #2B5946;
+  --brand-grad-to: #5BA385;
 
-  --color-ring: var(--brand-400);
-  --color-primary: var(--brand-500);
-  --color-primary-hover: var(--brand-400);
-  --color-primary-active: var(--brand-300);
-  --color-primary-foreground: #1B2113;
+  --color-ring: rgba(91, 163, 133, 0.4);
+  --color-primary: #3A735B;
+  --color-primary-hover: #4A8C70;
+  --color-primary-active: #2B5946;
+  --color-primary-foreground: #FFFFFF;
 
-  --color-success: #9CC4A0;
-  --color-warning: #D9B35C;
-  --color-error: #E58A72;
-  --color-info: var(--brand-400);
+  --color-success: #3A735B;
+  --color-warning: #D29922;
+  --color-error: #F85149;
+  --color-info: #58A6FF;
 
-  --color-sidebar: #262116;
-  --color-sidebar-border: #4A4133;
-  --text-secondary: #B7AE9C;
-  --border-strong: #5A5142;
+  --color-sidebar: #0D1117;
+  --color-sidebar-border: #30363D;
+  --text-secondary: #8D96A0;
+  --border-strong: #484F58;
 }
 
 /* Noir · Light — cream paper, navy ink, ember accent */
@@ -656,45 +657,45 @@
   --border-strong: #9AA3BE;
 }
 
-/* Noir · Dark — deep navy canvas, brass accent (research-backed pairing) */
+/* Noir · Dark — deep charcoal slate canvas, warm brass accent, neutral text */
 [data-style="noir"][data-theme="dark"] {
-  --color-background: #131D4F;
-  --color-foreground: #EFE4D2;
-  --color-card: #1A2757;
-  --color-card-foreground: #EFE4D2;
-  --color-muted: #223261;
-  --color-muted-foreground: #B9C3D6;
-  --color-secondary: #1E2B5E;
-  --color-secondary-foreground: #EFE4D2;
-  --color-border: #33417A;
-  --color-input: #0F183C;
+  --color-background: #0D1117;
+  --color-foreground: #F0F6FC;
+  --color-card: #161B22;
+  --color-card-foreground: #F0F6FC;
+  --color-muted: #21262D;
+  --color-muted-foreground: #8D96A0;
+  --color-secondary: #1F242C;
+  --color-secondary-foreground: #F0F6FC;
+  --color-border: #30363D;
+  --color-input: #0D1117;
 
-  --brand-50:   #FBF7F1;
-  --brand-100:  #F6EDDF;
-  --brand-200:  #EEDFC5;
-  --brand-300:  #E6D1AB;
-  --brand-400:  #DEC291;
-  --brand-500:  #D8B77D;
-  --brand-600:  #D4AF6E;
-  --brand-700:  #A58956;
-  --brand-800:  #7B6640;
-  --brand-grad-to: #E6D1AB;
+  --brand-50:   #2A2113;
+  --brand-100:  #3E311B;
+  --brand-200:  #5B4725;
+  --brand-300:  #7C6131;
+  --brand-400:  #A3803F;
+  --brand-500:  #C49B4D;
+  --brand-600:  #B0883C;
+  --brand-700:  #8E6C2D;
+  --brand-800:  #6D511F;
+  --brand-grad-to: #C49B4D;
 
-  --color-ring: var(--brand-400);
-  --color-primary: var(--brand-500);
-  --color-primary-hover: var(--brand-400);
-  --color-primary-active: var(--brand-300);
-  --color-primary-foreground: #131D4F;
+  --color-ring: rgba(196, 155, 77, 0.4);
+  --color-primary: #8E6C2D;
+  --color-primary-hover: #B0883C;
+  --color-primary-active: #6D511F;
+  --color-primary-foreground: #FFFFFF;
 
-  --color-success: #9CC4A0;
-  --color-warning: #E0B35C;
-  --color-error: #F08A7A;
-  --color-info: var(--brand-400);
+  --color-success: #238636;
+  --color-warning: #D29922;
+  --color-error: #F85149;
+  --color-info: #58A6FF;
 
-  --color-sidebar: #182452;
-  --color-sidebar-border: #33417A;
-  --text-secondary: #B9C3D6;
-  --border-strong: #46548F;
+  --color-sidebar: #0D1117;
+  --color-sidebar-border: #30363D;
+  --text-secondary: #8D96A0;
+  --border-strong: #484F58;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1113,30 +1114,31 @@ code { font-family: var(--font-mono); }
   background: var(--color-muted);
 }
 
-/* Linear / Raycast standard: High-contrast, executive primary actions in dark mode */
+/* Professional SaaS standard: rich, comfortable, non-blinding primary buttons in dark mode */
 [data-theme="dark"] .btn-primary {
-  background: #F8FAFC;
-  color: #08090A;
-  font-weight: 650;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  border: 1px solid rgba(240, 246, 252, 0.12);
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 [data-theme="dark"] .btn-primary:hover:not(:disabled) {
-  background: #FFFFFF;
-  color: #000000;
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.5);
-  transform: translateY(-1.5px) scale(1.02);
+  background: var(--color-primary-hover);
+  color: #FFFFFF;
+  border-color: rgba(240, 246, 252, 0.2);
+  box-shadow: 0 3px 10px rgba(35, 134, 54, 0.35);
+  transform: translateY(-1.5px) scale(1.015);
 }
 
 [data-theme="dark"] .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #F1F5F9;
+  background: #21262D;
+  border: 1px solid #30363D;
+  color: #C9D1D9;
 }
 [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #FFFFFF;
+  background: #30363D;
+  border-color: #484F58;
+  color: #F0F6FC;
 }
 
 /* Theme selector toggle buttons */
@@ -1165,11 +1167,21 @@ code { font-family: var(--font-mono); }
   border-color: var(--color-primary);
   font-weight: 650;
 }
+[data-theme="dark"] .theme-choice-btn {
+  background: #161B22;
+  border-color: #30363D;
+  color: #8D96A0;
+}
+[data-theme="dark"] .theme-choice-btn:hover {
+  background: #21262D;
+  border-color: #484F58;
+  color: #F0F6FC;
+}
 [data-theme="dark"] .theme-choice-btn.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  background: #21262D;
+  color: #F0F6FC;
+  border-color: #388BFD;
+  box-shadow: 0 1px 3px rgba(1, 4, 9, 0.4), inset 0 0 0 1px #388BFD;
 }
 
 .btn-ghost {
@@ -1248,8 +1260,8 @@ code { font-family: var(--font-mono); }
   background: linear-gradient(135deg, var(--accent-bg) 0%, var(--color-card) 55%);
 }
 [data-theme="dark"] .card-accent {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, var(--color-card) 100%);
+  border-color: #30363D;
+  background: #161B22;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2490,9 +2502,9 @@ code { font-family: var(--font-mono); }
   box-shadow: inset 0 2px 0 var(--accent);
 }
 [data-theme="dark"] .mobile-nav-btn.active {
-  color: #F8FAFC;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 2px 0 #1D8A52;
+  color: #F0F6FC;
+  background: #21262D;
+  box-shadow: inset 0 2px 0 #2EA043;
 }
 
 /* Mobile-only sign-out button in the topbar (sidebar is hidden on phones). */
@@ -2523,10 +2535,21 @@ code { font-family: var(--font-mono); }
   color: var(--accent);
   font-weight: var(--font-weight-semibold);
 }
+[data-theme="dark"] .accent-swatch {
+  background: #161B22;
+  border-color: #30363D;
+  color: #8D96A0;
+}
+[data-theme="dark"] .accent-swatch:hover {
+  background: #21262D;
+  border-color: #484F58;
+  color: #F0F6FC;
+}
 [data-theme="dark"] .accent-swatch.active {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.08);
-  color: #F8FAFC;
+  border-color: #388BFD;
+  background: #21262D;
+  color: #F0F6FC;
+  box-shadow: 0 1px 3px rgba(1, 4, 9, 0.4), inset 0 0 0 1px #388BFD;
 }
 .swatch {
   width: 16px; height: 16px;
@@ -2553,9 +2576,10 @@ code { font-family: var(--font-mono); }
   color: var(--brand-700);
 }
 [data-style="teabook"][data-theme="dark"] .side-nav-btn.active {
-  box-shadow: inset 3px 0 0 #2CA864;
-  background: color-mix(in srgb, #2CA864 16%, transparent);
-  color: #38B872;
+  box-shadow: inset 3px 0 0 #2EA043;
+  background: #161B22;
+  color: #F0F6FC;
+  border-color: #30363D;
 }
 [data-style="teabook"] .logo-dot {
   background: var(--wada-diamine-500);
