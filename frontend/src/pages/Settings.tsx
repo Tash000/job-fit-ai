@@ -25,7 +25,7 @@ const ACCENTS: { value: Accent; label: string; swatch: string }[] = [
 const STYLES: { value: Style; label: string; desc: string; swatch: string }[] = [
   { value: 'editorial', label: 'Editorial', desc: 'The classic look', swatch: 'swatch-editorial' },
   { value: 'beige', label: 'Beige', desc: 'Warm paper · teal', swatch: 'swatch-beige' },
-  { value: 'teabook', label: 'Japanese Teabook 1', desc: 'Sanzo Wada #217 · Matcha (Main), Salmon, Lacquer', swatch: 'swatch-teabook' },
+  { value: 'teabook', label: 'Alpine', desc: 'Matcha · Salmon · Slate', swatch: 'swatch-teabook' },
   { value: 'noir', label: 'Noir', desc: 'Navy · brass', swatch: 'swatch-noir' },
 ]
 
@@ -285,13 +285,14 @@ export function SettingsView({
             ))}
           </div>
 
+          {/* Alpine Style (Sanzo Wada #217) Color Scheme Reference */}
           {style === 'teabook' && (
             <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 'var(--radius-md)', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-foreground)', marginBottom: 4 }}>
-                Sanzo Wada (1933) · Combination #217 (Japanese Teabook 1)
+                Alpine Palette · Sanzo Wada (1933) Triad #217
               </div>
               <p className="text-xs text-muted" style={{ marginBottom: 12 }}>
-                Sourced from <em>A Dictionary of Color Combinations</em>. Overhaul using strictly three color palettes:
+                Sourced from <em>A Dictionary of Color Combinations</em> (Japanese Teabook 1):
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--color-muted)' }}>

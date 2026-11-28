@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 export type Theme = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 export type Accent = 'blue' | 'purple'
-/** Theme style: 'teabook' (Sanzo Wada #217 triad: Pale Burnt Lake, Ochraceous
- *  Salmon, Diamine Green), 'editorial' classic, or 'beige' / 'noir'. */
+/** Theme style: 'teabook' (Alpine: Sanzo Wada #217 triad of Diamine Green,
+ *  Ochraceous Salmon, and Pale Burnt Lake), 'editorial' classic, or 'beige' / 'noir'. */
 export type Style = 'teabook' | 'editorial' | 'beige' | 'noir'
 
 const THEME_KEY = 'vitralume-theme'
@@ -104,10 +104,10 @@ export interface Appearance {
 
 /** Canvas color per style, used for the browser chrome (meta theme-color). */
 const CANVAS: Record<Style, Record<ResolvedTheme, string>> = {
-  teabook: { light: '#FAF5EE', dark: '#140E0E' },
-  editorial: { light: '#F3EEE4', dark: '#161310' },
-  beige: { light: '#EDEDCE', dark: '#211C14' },
-  noir: { light: '#EFE4D2', dark: '#131D4F' },
+  teabook: { light: '#FAF5EE', dark: '#0B0F13' },
+  editorial: { light: '#F3EEE4', dark: '#0E1116' },
+  beige: { light: '#EDEDCE', dark: '#15191E' },
+  noir: { light: '#EFE4D2', dark: '#0C111C' },
 }
 
 /**

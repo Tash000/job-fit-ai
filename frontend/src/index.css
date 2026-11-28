@@ -232,18 +232,18 @@
 }
 
 /* ── 2b. SEMANTIC TOKENS — dark (ink) ────────────────────────────────── */
-/* Warm near-black canvas, paper-elevated surfaces, warm rules. */
+/* Modern deep charcoal / neutral slate canvas, clean card surfaces, crisp rules. */
 [data-theme="dark"] {
-  --color-background: #161310;
-  --color-foreground: #EDE7DC;
-  --color-card: #1F1A15;
-  --color-card-foreground: #EDE7DC;
-  --color-muted: #29231C;
-  --color-muted-foreground: #A59B87;
-  --color-secondary: #241F19;
-  --color-secondary-foreground: #EDE7DC;
-  --color-border: #3A3227;
-  --color-input: #2A241D;
+  --color-background: #0E1116;
+  --color-foreground: #F0F3F6;
+  --color-card: #161B22;
+  --color-card-foreground: #F0F3F6;
+  --color-muted: #1F242C;
+  --color-muted-foreground: #94A3B8;
+  --color-secondary: #181D25;
+  --color-secondary-foreground: #F0F3F6;
+  --color-border: #282E39;
+  --color-input: #12151B;
 
   --color-ring: var(--brand-400);
 
@@ -257,8 +257,8 @@
   --color-error: var(--color-red-500);
   --color-info: var(--brand-400);
 
-  --color-sidebar: #1A1612;
-  --color-sidebar-border: var(--color-gray-700);
+  --color-sidebar: #111419;
+  --color-sidebar-border: #282E39;
 
   color-scheme: dark;
 }
@@ -458,75 +458,76 @@
   --ink-shadow: #281B15;
 }
 
-/* Japanese Teabook 1 · Dark — deep roasted lacquer tea-chest canvas,
-   rich lacquer tile surfaces, luminous matcha main actions, salmon silk text */
+/* Alpine (Sanzo Wada #217) · Dark — cool obsidian slate canvas with crisp contrast,
+   refined slate-elevated cards, luminous alpine emerald primary actions,
+   and warm starlight gold accent highlights. Zero muddy red tint. */
 [data-style="teabook"][data-theme="dark"] {
-  --color-background: #140E0E;
-  --color-foreground: #F5EAE1;
-  --color-card: #201514;
-  --color-card-foreground: #F5EAE1;
-  --color-muted: #2B1C1B;
-  --color-muted-foreground: #D8A37B;
-  --color-secondary: #251817;
-  --color-secondary-foreground: #F5EAE1;
-  --color-border: #442928;
-  --color-input: #181010;
+  --color-background: #0B0F13;
+  --color-foreground: #F1F5F9;
+  --color-card: #12171E;
+  --color-card-foreground: #F1F5F9;
+  --color-muted: #19202A;
+  --color-muted-foreground: #94A3B8;
+  --color-secondary: #151D25;
+  --color-secondary-foreground: #F1F5F9;
+  --color-border: #24303E;
+  --color-input: #0E1318;
 
-  /* Main Hero Brand in Dark Mode: Luminous Diamine Green */
+  /* Main Hero Brand in Dark Mode: Luminous Alpine Emerald */
   --brand-50:   var(--wada-diamine-50);
   --brand-100:  var(--wada-diamine-100);
   --brand-200:  var(--wada-diamine-200);
   --brand-300:  var(--wada-diamine-300);
-  --brand-400:  #3F9F68;
-  --brand-500:  #2CA864;
-  --brand-600:  #38B872;
-  --brand-700:  #1A7444;
-  --brand-800:  #145E36;
-  --brand-grad-to: var(--wada-salmon-400);
+  --brand-400:  #34D399;
+  --brand-500:  #22C55E;
+  --brand-600:  #16A34A;
+  --brand-700:  #15803D;
+  --brand-800:  #166534;
+  --brand-grad-to: #34D399;
 
-  --color-ring: #2CA864;
-  --color-primary: #2CA864;
-  --color-primary-hover: #38B872;
-  --color-primary-active: #228A50;
-  --color-primary-foreground: #0A2416;
+  --color-ring: #22C55E;
+  --color-primary: #22C55E;
+  --color-primary-hover: #34D399;
+  --color-primary-active: #16A34A;
+  --color-primary-foreground: #05200E;
 
-  --color-success: #2CA864;
-  --color-warning: var(--wada-salmon-400);
-  --color-error: #E05D5D;
-  --color-info: #2CA864;
+  --color-success: #22C55E;
+  --color-warning: #E0B389;
+  --color-error: #F87171;
+  --color-info: #38BDF8;
 
-  --color-sidebar: #1A1111;
-  --color-sidebar-border: #442928;
-  --text-secondary: #D8A37B;
-  --border-strong: #D8A37B;
+  --color-sidebar: #0D1117;
+  --color-sidebar-border: #24303E;
+  --text-secondary: #E0B389;
+  --border-strong: #38495A;
 
-  --teal: #2CA864;
-  --teal-bg: color-mix(in srgb, #2CA864 14%, transparent);
-  --teal-border: color-mix(in srgb, #2CA864 36%, transparent);
+  --teal: #22C55E;
+  --teal-bg: color-mix(in srgb, #22C55E 14%, transparent);
+  --teal-border: color-mix(in srgb, #22C55E 36%, transparent);
 
-  --success: #2CA864;
-  --success-bg: color-mix(in srgb, #2CA864 16%, transparent);
-  --success-border: color-mix(in srgb, #2CA864 38%, transparent);
+  --success: #22C55E;
+  --success-bg: color-mix(in srgb, #22C55E 16%, transparent);
+  --success-border: color-mix(in srgb, #22C55E 38%, transparent);
 
-  --warning: var(--wada-salmon-400);
-  --warning-bg: color-mix(in srgb, var(--wada-salmon-400) 16%, transparent);
-  --warning-border: color-mix(in srgb, var(--wada-salmon-400) 38%, transparent);
+  --warning: #E0B389;
+  --warning-bg: color-mix(in srgb, #E0B389 16%, transparent);
+  --warning-border: color-mix(in srgb, #E0B389 38%, transparent);
 
-  --danger: #E05D5D;
-  --danger-bg: color-mix(in srgb, #E05D5D 16%, transparent);
-  --danger-border: color-mix(in srgb, #E05D5D 38%, transparent);
+  --danger: #F87171;
+  --danger-bg: color-mix(in srgb, #F87171 16%, transparent);
+  --danger-border: color-mix(in srgb, #F87171 38%, transparent);
 
-  --info: #2CA864;
-  --info-bg: color-mix(in srgb, #2CA864 14%, transparent);
-  --info-border: color-mix(in srgb, #2CA864 36%, transparent);
+  --info: #38BDF8;
+  --info-bg: color-mix(in srgb, #38BDF8 14%, transparent);
+  --info-border: color-mix(in srgb, #38BDF8 36%, transparent);
 
-  --violet: var(--wada-burnt-lake-500);
-  --violet-bg: color-mix(in srgb, var(--wada-burnt-lake-500) 14%, transparent);
-  --violet-border: color-mix(in srgb, var(--wada-burnt-lake-500) 36%, transparent);
+  --violet: #A78BFA;
+  --violet-bg: color-mix(in srgb, #A78BFA 14%, transparent);
+  --violet-border: color-mix(in srgb, #A78BFA 36%, transparent);
 
-  --topbar-bg: color-mix(in srgb, #140E0E 92%, transparent);
-  --logo-gradient: linear-gradient(135deg, #2CA864, var(--wada-salmon-400));
-  --ink-shadow: #0C0808;
+  --topbar-bg: color-mix(in srgb, #0B0F13 92%, transparent);
+  --logo-gradient: linear-gradient(135deg, #22C55E, #38BDF8);
+  --ink-shadow: #05080A;
 }
 
 /* Beige · Light — warm paper, teal accent */
@@ -570,18 +571,18 @@
   --border-strong: #A9B2A4;
 }
 
-/* Beige · Dark — warm night: deep sand-brown canvas, sage accent */
+/* Beige · Dark — cool dark charcoal slate canvas, sage accent (no red tint) */
 [data-style="beige"][data-theme="dark"] {
-  --color-background: #211C14;
-  --color-foreground: #EDE6D2;
-  --color-card: #2A241A;
-  --color-card-foreground: #EDE6D2;
-  --color-muted: #332C20;
-  --color-muted-foreground: #B7AE9C;
-  --color-secondary: #2E281D;
-  --color-secondary-foreground: #EDE6D2;
-  --color-border: #4A4133;
-  --color-input: #1B1710;
+  --color-background: #101418;
+  --color-foreground: #F1F5F9;
+  --color-card: #171D23;
+  --color-card-foreground: #F1F5F9;
+  --color-muted: #20272F;
+  --color-muted-foreground: #94A3B8;
+  --color-secondary: #1B222A;
+  --color-secondary-foreground: #F1F5F9;
+  --color-border: #2C3642;
+  --color-input: #12161A;
 
   --brand-50:   #F6F7F3;
   --brand-100:  #EBEEE5;
