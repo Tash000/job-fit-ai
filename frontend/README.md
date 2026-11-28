@@ -4,9 +4,9 @@ High-craft, responsive client application for Vitralume. Built with **React 19**
 
 ---
 
-## 🎨 Japanese Teabook 1 Design System
+## 🎨 Alpine Design System (Sanzo Wada #217)
 
-The visual identity is built on classical Japanese color harmonies curated by Sanzo Wada (A Dictionary of Color Combinations):
+The visual identity is built on classical Japanese color harmonies curated by Sanzo Wada (A Dictionary of Color Combinations, Triad #217 / Japanese Teabook 1):
 
 * **Primary Palette (Sanzo Wada #217)**:
   * **Diamine Green** (`#1A7444`): Primary actions, verified badges, active states.
