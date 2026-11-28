@@ -41,7 +41,7 @@ Glass-clear insight into your job fit. Multi-agent ATS keyword evaluation, seman
 
 ---
 
-## <img src="docs/icons/cpu.svg" width="20" height="20" align="center" alt="" /> Overview
+## <img src="docs/icons/cpu.svg" width="24" height="24" align="middle" alt="" /> Overview
 
 Vitralume (*vitral* — stained glass · *lume* — illumination) is a distributed AI copilot designed to eliminate generic, ungrounded applications and ATS rejection:
 
@@ -53,7 +53,7 @@ Vitralume (*vitral* — stained glass · *lume* — illumination) is a distribut
 
 ---
 
-## <img src="docs/icons/layers.svg" width="20" height="20" align="center" alt="" /> Application Gallery
+## <img src="docs/icons/layers.svg" width="24" height="24" align="middle" alt="" /> Application Gallery
 
 <div align="center">
 
@@ -90,7 +90,7 @@ Vitralume (*vitral* — stained glass · *lume* — illumination) is a distribut
 
 ---
 
-## <img src="docs/icons/activity.svg" width="20" height="20" align="center" alt="" /> Core Capabilities
+## <img src="docs/icons/activity.svg" width="24" height="24" align="middle" alt="" /> Core Capabilities
 
 ### 1. LangGraph Multi-Agent Pipeline
 State-machine pipeline with 5 isolated roles:
@@ -120,7 +120,7 @@ State-machine pipeline with 5 isolated roles:
 
 ---
 
-## <img src="docs/icons/layers.svg" width="20" height="20" align="center" alt="" /> Multi-Agent Pipeline Architecture
+## <img src="docs/icons/layers.svg" width="24" height="24" align="middle" alt="" /> Multi-Agent Pipeline Architecture
 
 ```mermaid
 flowchart TD
@@ -136,7 +136,7 @@ flowchart TD
 
 ---
 
-## <img src="docs/icons/cpu.svg" width="20" height="20" align="center" alt="" /> Multi-Provider & Dual Keys
+## <img src="docs/icons/cpu.svg" width="24" height="24" align="middle" alt="" /> Multi-Provider & Dual Keys
 
 Dedicated keys prevent quota bottlenecks and optimize cost-performance across providers:
 
@@ -155,7 +155,7 @@ NVIDIA_API_KEY=nvapi-...                # NVIDIA NIM
 
 ---
 
-## <img src="docs/icons/palette.svg" width="20" height="20" align="center" alt="" /> Alpine Design System
+## <img src="docs/icons/palette.svg" width="24" height="24" align="middle" alt="" /> Alpine Design System
 
 Interface styling rooted in classical color harmonies from Sanzo Wada (Combination #217):
 
@@ -170,7 +170,7 @@ Interface styling rooted in classical color harmonies from Sanzo Wada (Combinati
 
 ---
 
-## <img src="docs/icons/layers.svg" width="20" height="20" align="center" alt="" /> Tech Stack
+## <img src="docs/icons/layers.svg" width="24" height="24" align="middle" alt="" /> Tech Stack
 
 | Layer | Technologies |
 |---|---|
@@ -183,7 +183,7 @@ Interface styling rooted in classical color harmonies from Sanzo Wada (Combinati
 
 ---
 
-## <img src="docs/icons/terminal.svg" width="20" height="20" align="center" alt="" /> Quick Start
+## <img src="docs/icons/terminal.svg" width="24" height="24" align="middle" alt="" /> Quick Start
 
 ### Prerequisites
 - Python 3.10+ (3.11 recommended)
@@ -216,7 +216,7 @@ Local application: `http://localhost:5173`
 
 ---
 
-## <img src="docs/icons/terminal.svg" width="20" height="20" align="center" alt="" /> Testing
+## <img src="docs/icons/terminal.svg" width="24" height="24" align="middle" alt="" /> Testing
 
 ```bash
 # Backend unit & multi-agent test suite (117+ tests)
@@ -232,7 +232,7 @@ npm run csp:check     # Content Security Policy hash verification
 
 ---
 
-## <img src="docs/icons/activity.svg" width="20" height="20" align="center" alt="" /> API Endpoints
+## <img src="docs/icons/activity.svg" width="24" height="24" align="middle" alt="" /> API Endpoints
 
 ### Multi-Agent & RAG
 - `POST /api/pipeline/run-graph` — Executes 5-agent LangGraph workflow (`auto`, `gemini`, `nim`).
@@ -252,7 +252,7 @@ npm run csp:check     # Content Security Policy hash verification
 
 ---
 
-## <img src="docs/icons/shield-check.svg" width="20" height="20" align="center" alt="" /> Security & Privacy
+## <img src="docs/icons/shield-check.svg" width="24" height="24" align="middle" alt="" /> Security & Privacy
 
 - **Encrypted at Rest**: User provider keys are encrypted with AES-256 (`cryptography.fernet`) and decrypted only in memory for active requests.
 - **Row-Level Isolation**: All database operations enforce user UUID scoping.

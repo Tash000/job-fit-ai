@@ -4,7 +4,7 @@ High-performance, secure backend API powering the Vitralume Job Application Copi
 
 ---
 
-## <img src="../docs/icons/layers.svg" width="18" height="18" align="center" alt="" /> Architecture & Key Modules
+## <img src="../docs/icons/layers.svg" width="24" height="24" align="middle" alt="" /> Architecture & Key Modules
 
 ```
 backend/
@@ -24,7 +24,7 @@ backend/
 
 ---
 
-## <img src="../docs/icons/cpu.svg" width="18" height="18" align="center" alt="" /> LangGraph 5-Agent Pipeline
+## <img src="../docs/icons/cpu.svg" width="24" height="24" align="middle" alt="" /> LangGraph 5-Agent Pipeline
 
 The core intelligence layer runs an autonomous, state-driven multi-agent graph:
 
@@ -76,7 +76,7 @@ The core intelligence layer runs an autonomous, state-driven multi-agent graph:
 
 ---
 
-## <img src="../docs/icons/cpu.svg" width="18" height="18" align="center" alt="" /> Dual-Key & Workload Isolation Architecture
+## <img src="../docs/icons/cpu.svg" width="24" height="24" align="middle" alt="" /> Dual-Key & Workload Isolation Architecture
 
 Vitralume supports dedicated API keys for different workloads to prevent rate limit contention and enable cost attribution:
 
@@ -100,7 +100,7 @@ NVIDIA_API_KEY=nvapi-...
 
 ---
 
-## <img src="../docs/icons/shield-check.svg" width="18" height="18" align="center" alt="" /> Security & Data Privacy
+## <img src="../docs/icons/shield-check.svg" width="24" height="24" align="middle" alt="" /> Security & Data Privacy
 
 * **AES-256 Fernet Encryption**: User API keys are encrypted at rest using `cryptography.fernet`. Raw keys are never stored in plaintext, never logged, and never returned to clients.
 * **Row-Level User Isolation**: Every database interaction is scoped to the authenticated user's UUID.
@@ -108,7 +108,7 @@ NVIDIA_API_KEY=nvapi-...
 
 ---
 
-## <img src="../docs/icons/terminal.svg" width="18" height="18" align="center" alt="" /> Running Backend Tests
+## <img src="../docs/icons/terminal.svg" width="24" height="24" align="middle" alt="" /> Running Backend Tests
 
 Run the complete test suite (116+ tests):
 
