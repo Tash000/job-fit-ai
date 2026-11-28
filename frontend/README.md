@@ -1,12 +1,12 @@
-# 💻 Vitralume Frontend Service
+# Vitralume Frontend Service
 
 High-craft, responsive client application for Vitralume. Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS**, and **Workbox Progressive Web App (PWA)** capabilities.
 
 ---
 
-## 🎨 Alpine Design System (Sanzo Wada #217)
+## <img src="../docs/icons/palette.svg" width="18" height="18" align="center" alt="" /> Alpine & Japanese Teabook Design System
 
-The visual identity is built on classical Japanese color harmonies curated by Sanzo Wada (A Dictionary of Color Combinations, Triad #217 / Japanese Teabook 1):
+The visual identity is built on classical Japanese color harmonies curated by Sanzo Wada (*A Dictionary of Color Combinations*, Triad #217 / Japanese Teabook 1):
 
 * **Primary Palette (Sanzo Wada #217)**:
   * **Diamine Green** (`#1A7444`): Primary actions, verified badges, active states.
@@ -23,7 +23,7 @@ The visual identity is built on classical Japanese color harmonies curated by Sa
 
 ---
 
-## 🧭 Key Views & Modules
+## <img src="../docs/icons/layers.svg" width="18" height="18" align="center" alt="" /> Key Views & Modules
 
 ```
 frontend/src/
@@ -44,7 +44,7 @@ frontend/src/
 
 ---
 
-## 🔍 Job Finder 3-Tab Suite
+## <img src="../docs/icons/search.svg" width="18" height="18" align="center" alt="" /> Job Finder 3-Tab Suite
 
 1. **Tab 1: Browse Job Boards**:
    * Pre-configured deep search targets across 8 major tech boards: LinkedIn, Indeed, Wellfound, Google Jobs, Y Combinator, RemoteOK, Glassdoor, and ZipRecruiter.
@@ -59,7 +59,7 @@ frontend/src/
 
 ---
 
-## 📱 Progressive Web App (PWA)
+## <img src="../docs/icons/activity.svg" width="18" height="18" align="center" alt="" /> Progressive Web App (PWA)
 
 * Fully installable on iOS, Android, macOS, and Windows.
 * Standalone window frame with custom title bar theming.
@@ -67,7 +67,7 @@ frontend/src/
 
 ---
 
-## 🛠 Local Development & Verification
+## <img src="../docs/icons/terminal.svg" width="18" height="18" align="center" alt="" /> Local Development & Verification
 
 ```bash
 # Install dependencies
